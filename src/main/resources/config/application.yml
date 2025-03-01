@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: SpringToDo
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: ${SERVER_URL:jdbc:postgresql://localhost:5432/spring_todo_db}
+    username: ${SERVER_USERNAME:postgres}
+    password: ${SERVER_PASS:1322}
+  data:
+    redis:
+      port: ${REDIS_PORT:6379}
+      host: ${REDIS_HOST:localhost}
+  flyway:
+    enabled: ${FLYWAY_ENABLED:true}
+app:
+  openapi:
+    dev-url: http://localhost:8088
+  logger:
+    slf4j: false
+  redis:
+    enabled: ${REDIS_ENABLED:false}
+  cache:
+    cacheNames:
+      - users
+      - userById
+      - userByName
+      - tasks
+      - taskById
+    properties:
+      users:
+        expiry: 5m
+      userById:
+        expiry: 5m
+      userByName:
+        expiry: 5m
+      tasks:
+        expiry: 30s
+      taskById:
+        expiry: 30s
+server:
+  port: 8088
