@@ -21,8 +21,8 @@ public class AppCacheProperties {
     }
 
     /**
-     * Фактически глобальные переменные.
-     * Могут не соответствовать значениям из config-а.
+     * Actually global variables.
+     * May not match values from config.
      */
     public static final class Types {
         public static final String USERS = "users";

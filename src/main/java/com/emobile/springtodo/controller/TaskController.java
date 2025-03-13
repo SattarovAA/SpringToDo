@@ -73,9 +73,8 @@ public class TaskController {
     public ResponseEntity<TaskListResponse> getAll(@Valid PageInfo pageInfo) {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(taskMapper.modelListToModelListResponse(
-                                taskService.findAll(pageInfo)
-                        )
-                );
+                        taskService.findAll(pageInfo)
+                ));
     }
 
     /**
@@ -129,11 +128,10 @@ public class TaskController {
             @RequestBody @Valid TaskSaveRequest modelRequest) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(taskMapper.modelToResponse(
-                                taskService.save(
-                                        taskMapper.requestToModel(modelRequest)
-                                )
+                        taskService.save(
+                                taskMapper.requestToModel(modelRequest)
                         )
-                );
+                ));
     }
 
     /**
@@ -161,12 +159,11 @@ public class TaskController {
     ) {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(taskMapper.modelToResponse(
-                                taskService.update(
-                                        id,
-                                        taskMapper.requestToModel(modelRequest)
-                                )
+                        taskService.update(
+                                id,
+                                taskMapper.requestToModel(modelRequest)
                         )
-                );
+                ));
     }
 
     /**

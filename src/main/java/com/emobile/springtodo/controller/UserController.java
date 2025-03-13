@@ -74,9 +74,8 @@ public class UserController {
     public ResponseEntity<UserListResponse> getAll(@Valid PageInfo pageInfo) {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(userMapper.modelListToModelListResponse(
-                                userService.findAll(pageInfo)
-                        )
-                );
+                        userService.findAll(pageInfo)
+                ));
     }
 
     /**
@@ -132,12 +131,11 @@ public class UserController {
     ) {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(userMapper.modelToResponse(
-                                userService.update(
-                                        id,
-                                        userMapper.requestToModel(modelRequest)
-                                )
+                        userService.update(
+                                id,
+                                userMapper.requestToModel(modelRequest)
                         )
-                );
+                ));
     }
 
     /**
