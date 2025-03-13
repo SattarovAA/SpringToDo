@@ -12,7 +12,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -63,13 +62,11 @@ public class TaskController {
             summary = "Get all tasks.",
             description = "Only with admin access.",
             tags = {"task", "get"})
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", content = {
-                    @Content(schema = @Schema(implementation = TaskListResponse.class))
-            }),
-            @ApiResponse(responseCode = "401"),
-            @ApiResponse(responseCode = "403")
+    @ApiResponse(responseCode = "200", content = {
+            @Content(schema = @Schema(implementation = TaskListResponse.class))
     })
+    @ApiResponse(responseCode = "401")
+    @ApiResponse(responseCode = "403")
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping()
     @LazyLogger
@@ -96,13 +93,11 @@ public class TaskController {
                           "The response is Task object with " +
                           "id, name, description, status, createdAt, updatedAt, authorId.",
             tags = {"task", "get"})
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", content = {
-                    @Content(schema = @Schema(implementation = TaskResponse.class))
-            }),
-            @ApiResponse(responseCode = "400"),
-            @ApiResponse(responseCode = "401")
+    @ApiResponse(responseCode = "200", content = {
+            @Content(schema = @Schema(implementation = TaskResponse.class))
     })
+    @ApiResponse(responseCode = "400")
+    @ApiResponse(responseCode = "401")
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @GetMapping(path = "/{id}")
     @LazyLogger
@@ -122,13 +117,11 @@ public class TaskController {
             summary = "Create new task.",
             description = "Only with admin access.",
             tags = {"task", "post"})
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", content = {
-                    @Content(schema = @Schema(implementation = TaskResponse.class))
-            }),
-            @ApiResponse(responseCode = "400"),
-            @ApiResponse(responseCode = "401")
+    @ApiResponse(responseCode = "201", content = {
+            @Content(schema = @Schema(implementation = TaskResponse.class))
     })
+    @ApiResponse(responseCode = "400")
+    @ApiResponse(responseCode = "401")
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @PostMapping()
     @LazyLogger
@@ -154,13 +147,11 @@ public class TaskController {
     @Operation(
             summary = "Update task by specifying its id.",
             tags = {"task", "put"})
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", content = {
-                    @Content(schema = @Schema(implementation = TaskResponse.class))
-            }),
-            @ApiResponse(responseCode = "400"),
-            @ApiResponse(responseCode = "401"),
+    @ApiResponse(responseCode = "200", content = {
+            @Content(schema = @Schema(implementation = TaskResponse.class))
     })
+    @ApiResponse(responseCode = "400")
+    @ApiResponse(responseCode = "401")
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @PutMapping(path = "/{id}")
     @LazyLogger
@@ -187,11 +178,9 @@ public class TaskController {
     @Operation(
             summary = "Delete task by specifying its id.",
             tags = {"task", "delete"})
-    @ApiResponses({
-            @ApiResponse(responseCode = "204"),
-            @ApiResponse(responseCode = "400"),
-            @ApiResponse(responseCode = "401"),
-    })
+    @ApiResponse(responseCode = "204")
+    @ApiResponse(responseCode = "400")
+    @ApiResponse(responseCode = "401")
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @DeleteMapping(path = "/{id}")
     @LazyLogger
@@ -208,12 +197,10 @@ public class TaskController {
     @Operation(
             summary = "Delete all tasks.",
             tags = {"task", "delete"})
-    @ApiResponses({
-            @ApiResponse(responseCode = "204"),
-            @ApiResponse(responseCode = "400"),
-            @ApiResponse(responseCode = "401"),
-            @ApiResponse(responseCode = "403"),
-    })
+    @ApiResponse(responseCode = "204")
+    @ApiResponse(responseCode = "400")
+    @ApiResponse(responseCode = "401")
+    @ApiResponse(responseCode = "403")
     @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping(path = "")
     @LazyLogger

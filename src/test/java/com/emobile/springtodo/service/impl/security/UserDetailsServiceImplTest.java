@@ -22,7 +22,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("UserDetailsServiceImplTest Tests")
-public class UserDetailsServiceImplTest {
+class UserDetailsServiceImplTest {
     private UserDetailsServiceImpl userDetailsService;
     @Mock
     private UserService userService;

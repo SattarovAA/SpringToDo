@@ -1,7 +1,7 @@
 package com.emobile.springtodo.service.impl;
 
 import com.emobile.springtodo.aop.LazyLogger;
-import com.emobile.springtodo.config.Property.Cache.AppCacheProperties;
+import com.emobile.springtodo.config.property.cache.AppCacheProperties;
 import com.emobile.springtodo.exception.EntityNotFoundException;
 import com.emobile.springtodo.model.entity.Task;
 import com.emobile.springtodo.model.security.AppUserDetails;
@@ -60,7 +60,7 @@ public class TaskServiceImpl implements TaskService {
      * @return {@link Task} list.
      */
     @Override
-    @Cacheable(AppCacheProperties.Type.TASKS)
+    @Cacheable(AppCacheProperties.Types.TASKS)
     @Transactional(readOnly = true)
     @LazyLogger
     public List<Task> findAll(PageInfo pageInfo) {
@@ -75,7 +75,7 @@ public class TaskServiceImpl implements TaskService {
      * @throws EntityNotFoundException if {@link Task} with id not found.
      */
     @Override
-    @Cacheable(value = AppCacheProperties.Type.TASK_BY_ID, key = "#id")
+    @Cacheable(value = AppCacheProperties.Types.TASK_BY_ID, key = "#id")
     @Transactional(readOnly = true)
     @LazyLogger
     public Task findById(Long id) {
@@ -96,7 +96,7 @@ public class TaskServiceImpl implements TaskService {
      * @return object of type {@link Task} that was saved.
      */
     @Override
-    @CacheEvict(value = AppCacheProperties.Type.TASKS, allEntries = true)
+    @CacheEvict(value = AppCacheProperties.Types.TASKS, allEntries = true)
     @Transactional
     @LazyLogger
     public Task save(Task model) {
@@ -112,8 +112,8 @@ public class TaskServiceImpl implements TaskService {
      * @return object of type {@link Task} that was updated.
      */
     @Override
-    @CachePut(value = AppCacheProperties.Type.TASK_BY_ID, key = "#id")
-    @CacheEvict(value = AppCacheProperties.Type.TASKS, allEntries = true)
+    @CachePut(value = AppCacheProperties.Types.TASK_BY_ID, key = "#id")
+    @CacheEvict(value = AppCacheProperties.Types.TASKS, allEntries = true)
     @Transactional
     @LazyLogger
     public Task update(Long id, Task model) {
@@ -180,8 +180,8 @@ public class TaskServiceImpl implements TaskService {
      */
     @Override
     @Caching(evict = {
-            @CacheEvict(value = AppCacheProperties.Type.TASK_BY_ID, key = "#id"),
-            @CacheEvict(value = AppCacheProperties.Type.TASKS, allEntries = true)
+            @CacheEvict(value = AppCacheProperties.Types.TASK_BY_ID, key = "#id"),
+            @CacheEvict(value = AppCacheProperties.Types.TASKS, allEntries = true)
     })
     @Transactional
     @LazyLogger
@@ -195,8 +195,8 @@ public class TaskServiceImpl implements TaskService {
      */
     @Override
     @Caching(evict = {
-            @CacheEvict(value = AppCacheProperties.Type.TASK_BY_ID, allEntries = true),
-            @CacheEvict(value = AppCacheProperties.Type.TASKS, allEntries = true)
+            @CacheEvict(value = AppCacheProperties.Types.TASK_BY_ID, allEntries = true),
+            @CacheEvict(value = AppCacheProperties.Types.TASKS, allEntries = true)
     })
     @Transactional
     @LazyLogger
@@ -210,8 +210,8 @@ public class TaskServiceImpl implements TaskService {
      */
     @Override
     @Caching(evict = {
-            @CacheEvict(value = AppCacheProperties.Type.TASK_BY_ID, allEntries = true),
-            @CacheEvict(value = AppCacheProperties.Type.TASKS, allEntries = true)
+            @CacheEvict(value = AppCacheProperties.Types.TASK_BY_ID, allEntries = true),
+            @CacheEvict(value = AppCacheProperties.Types.TASKS, allEntries = true)
     })
     @Transactional
     @LazyLogger

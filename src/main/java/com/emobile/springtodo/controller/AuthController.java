@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -49,12 +48,10 @@ public class AuthController {
     @Operation(
             summary = "Register new User.",
             tags = {"auth", "post", "register", "public"})
-    @ApiResponses({
-            @ApiResponse(responseCode = "201", content = {
-                    @Content(schema = @Schema(implementation = SimpleResponse.class))
-            }),
-            @ApiResponse(responseCode = "400"),
+    @ApiResponse(responseCode = "201", content = {
+            @Content(schema = @Schema(implementation = SimpleResponse.class))
     })
+    @ApiResponse(responseCode = "400")
     @PostMapping("/register")
     @LazyLogger
     public ResponseEntity<SimpleResponse> registerUser(
@@ -66,26 +63,4 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new SimpleResponse("User created!"));
     }
-
-//    @Operation(
-//            summary = "Logout User.",
-//            tags = {"logout", "post", "register", "public"})
-//    @ApiResponses({
-//            @ApiResponse(responseCode = "200", content = {
-//                    @Content(schema = @Schema(implementation = SimpleResponse.class))
-//            }),
-//            @ApiResponse(responseCode = "401"),
-//    })
-//    @PostMapping("/logout")
-//    @PreAuthorize("isAuthenticated()")
-//    @LazyLogger
-//    public ResponseEntity<SimpleResponse> logout(HttpServletRequest request) throws ServletException {
-//        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-//        if (authentication != null) {
-//            request.getSession().invalidate();
-//            request.logout();
-//        }
-//        return ResponseEntity.status(HttpStatus.OK)
-//                .body(new SimpleResponse("User logout!"));
-//    }
 }

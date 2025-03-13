@@ -1,8 +1,6 @@
-package com.emobile.springtodo.config.Property.Cache;
+package com.emobile.springtodo.config.property.cache;
 
 import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Duration;
@@ -26,11 +24,13 @@ public class AppCacheProperties {
      * Фактически глобальные переменные.
      * Могут не соответствовать значениям из config-а.
      */
-    public interface Type {
-        String USERS = "users";
-        String USER_BY_ID = "userById";
-        String USER_BY_NAME = "userByName";
-        String TASKS = "tasks";
-        String TASK_BY_ID = "taskById";
+    public static final class Types {
+        public static final String USERS = "users";
+        public static final String USER_BY_ID = "userById";
+        public static final String USER_BY_NAME = "userByName";
+        public static final String TASKS = "tasks";
+        public static final String TASK_BY_ID = "taskById";
+
+        private Types() {}
     }
 }

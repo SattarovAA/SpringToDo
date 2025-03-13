@@ -1,6 +1,6 @@
 package com.emobile.springtodo.config;
 
-import com.emobile.springtodo.config.Property.Cache.AppCacheProperties;
+import com.emobile.springtodo.config.property.cache.AppCacheProperties;
 import org.springframework.boot.autoconfigure.cache.RedisCacheManagerBuilderCustomizer;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -33,7 +33,7 @@ public class RedisConfig {
                                 )
                 )
         );
-        return (builder) -> builder
+        return builder -> builder
                 .withInitialCacheConfigurations(redisConfiguration);
     }
 }

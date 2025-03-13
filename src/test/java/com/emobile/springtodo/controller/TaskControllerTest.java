@@ -14,10 +14,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -33,8 +29,6 @@ import java.time.Month;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -47,8 +41,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Testcontainers
 @DisplayName("TaskControllerTest tests")
-public class TaskControllerTest {
-    private final static String urlTemplate = "/api/task";
+class TaskControllerTest {
+    private static final String URL_TEMPLATE = "/api/task";
     @Autowired
     JdbcTemplate jdbcTemplate;
     @Autowired
@@ -96,7 +90,7 @@ public class TaskControllerTest {
     @DisplayName("getById test: get task data by id from anonymous user.")
     void givenAnonymousUserWhenGetByIdUrlThenStatusUnauthorized()
             throws Exception {
-        String getByIdUrl = urlTemplate + "/1";
+        String getByIdUrl = URL_TEMPLATE + "/1";
 
         mockMvc.perform(get(getByIdUrl))
                 .andExpect(status().isUnauthorized());
@@ -107,7 +101,7 @@ public class TaskControllerTest {
     @DisplayName("getById test: get task data by not existed user id.")
     void givenNotExistedUserIdWhenGetByIdUrlThenStatusNotFound()
             throws Exception {
-        String getByIdUrl = urlTemplate + "/1";
+        String getByIdUrl = URL_TEMPLATE + "/1";
 
         mockMvc.perform(get(getByIdUrl))
                 .andExpect(status().isNotFound());
@@ -119,7 +113,7 @@ public class TaskControllerTest {
     void givenExistedUserIdWhenGetByIdUrlThenUserResponse()
             throws Exception {
         long expectedId = 1L;
-        String getByIdUrl = urlTemplate + "/" + expectedId;
+        String getByIdUrl = URL_TEMPLATE + "/" + expectedId;
         String expectedName = "name";
         String expectedDescription = "description";
         String expectedStatus = "DONE";
@@ -160,7 +154,7 @@ public class TaskControllerTest {
     @DisplayName("save test: save task data by id from anonymous user.")
     void givenAnonymousUserWhenSaveUrlThenStatusUnauthorized()
             throws Exception {
-        mockMvc.perform(post(urlTemplate))
+        mockMvc.perform(post(URL_TEMPLATE))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -190,7 +184,7 @@ public class TaskControllerTest {
         AppUserDetails principal = new AppUserDetails(defaultUser);
         setDefaultAuthorUser(expectedAuthorId);
 
-        mockMvc.perform(post(urlTemplate)
+        mockMvc.perform(post(URL_TEMPLATE)
                         .with(user(principal))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestUserJson)
@@ -219,7 +213,7 @@ public class TaskControllerTest {
     @DisplayName("update test: update task data by id from anonymous user.")
     void givenAnonymousUserWhenUpdateUrlThenStatusUnauthorized()
             throws Exception {
-        String updateUrl = urlTemplate + "/1";
+        String updateUrl = URL_TEMPLATE + "/1";
 
         mockMvc.perform(put(updateUrl))
                 .andExpect(status().isUnauthorized());
@@ -231,7 +225,7 @@ public class TaskControllerTest {
     void givenInsertJsonWhenUpdateUrlThenTaskResponse()
             throws Exception {
         long expectedId = 1L;
-        String updateUrl = urlTemplate + "/" + expectedId;
+        String updateUrl = URL_TEMPLATE + "/" + expectedId;
         String expectedName = "name";
         String expectedDescription = "description";
         String expectedStatus = "DONE";
@@ -281,7 +275,7 @@ public class TaskControllerTest {
     @DisplayName("delete test: delete user data by id from anonymous user.")
     void givenAnonymousUserWhenDeleteUrlThenStatusUnauthorized()
             throws Exception {
-        String deleteUrl = urlTemplate + "/1";
+        String deleteUrl = URL_TEMPLATE + "/1";
 
         mockMvc.perform(delete(deleteUrl))
                 .andExpect(status().isUnauthorized());
@@ -292,7 +286,7 @@ public class TaskControllerTest {
     @DisplayName("delete test: delete user data by not existed id.")
     void givenNotExistedUserIdWhenDeleteUrlThenStatusNotFound()
             throws Exception {
-        String deleteUrl = urlTemplate + "/1";
+        String deleteUrl = URL_TEMPLATE + "/1";
 
         mockMvc.perform(delete(deleteUrl))
                 .andExpect(status().isNotFound());
@@ -304,7 +298,7 @@ public class TaskControllerTest {
     void givenExistedUserIdWhenDeleteUrlThenStatusNoContent()
             throws Exception {
         long expectedId = 1L;
-        String deleteUrl = urlTemplate + "/" + expectedId;
+        String deleteUrl = URL_TEMPLATE + "/" + expectedId;
         String expectedName = "name";
         String expectedDescription = "description";
         String expectedStatus = "DONE";
@@ -321,25 +315,6 @@ public class TaskControllerTest {
         );
         mockMvc.perform(delete(deleteUrl))
                 .andExpect(status().isNoContent());
-    }
-
-    private void setSecurityContext(long userPrincipalId, String username, String pass, RoleType roleType) {
-        User defaultUser = new User(
-                userPrincipalId,
-                username,
-                pass,
-                "email@c.om",
-                roleType,
-                Collections.emptyList()
-        );
-        AppUserDetails principal = new AppUserDetails(defaultUser);
-        Authentication auth =
-                new UsernamePasswordAuthenticationToken(
-                        principal, pass, principal.getAuthorities()
-                );
-        SecurityContext securityContext = mock(SecurityContext.class);
-        when(securityContext.getAuthentication()).thenReturn(auth);
-        SecurityContextHolder.setContext(securityContext);
     }
 
     private void setDefaultAuthorUser(long expectedId) {

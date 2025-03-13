@@ -1,7 +1,7 @@
 package com.emobile.springtodo.service.impl;
 
 import com.emobile.springtodo.aop.LazyLogger;
-import com.emobile.springtodo.config.Property.Cache.AppCacheProperties;
+import com.emobile.springtodo.config.property.cache.AppCacheProperties;
 import com.emobile.springtodo.exception.AlreadyExitsException;
 import com.emobile.springtodo.exception.EntityNotFoundException;
 import com.emobile.springtodo.model.entity.Task;
@@ -69,7 +69,7 @@ public class UserServiceImpl implements UserService {
      * @return {@link User} list.
      */
     @Override
-    @Cacheable(AppCacheProperties.Type.USERS)
+    @Cacheable(AppCacheProperties.Types.USERS)
     @Transactional(readOnly = true)
     @LazyLogger
     public List<User> findAll(PageInfo pageInfo) {
@@ -84,7 +84,7 @@ public class UserServiceImpl implements UserService {
      * @throws EntityNotFoundException if {@link User} with id not found.
      */
     @Override
-    @Cacheable(value = AppCacheProperties.Type.USER_BY_ID, key = "#id")
+    @Cacheable(value = AppCacheProperties.Types.USER_BY_ID, key = "#id")
     @Transactional(readOnly = true)
     @LazyLogger
     public User findById(Long id) {
@@ -106,7 +106,7 @@ public class UserServiceImpl implements UserService {
      * @throws EntityNotFoundException if {@link User} with username not found.
      */
     @Override
-    @Cacheable(value = AppCacheProperties.Type.USER_BY_NAME, key = "#username")
+    @Cacheable(value = AppCacheProperties.Types.USER_BY_NAME, key = "#username")
     @Transactional(readOnly = true)
     @LazyLogger
     public User findByUsername(String username) {
@@ -127,8 +127,8 @@ public class UserServiceImpl implements UserService {
      * @return object of type {@link User} that was saved.
      */
     @Override
-    @Cacheable(value = AppCacheProperties.Type.USER_BY_NAME, key = "#model.username")
-    @CacheEvict(value = AppCacheProperties.Type.USERS, allEntries = true)
+    @Cacheable(value = AppCacheProperties.Types.USER_BY_NAME, key = "#model.username")
+    @CacheEvict(value = AppCacheProperties.Types.USERS, allEntries = true)
     @Transactional
     @LazyLogger
     public User save(User model) {
@@ -147,10 +147,10 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Caching(put = {
-            @CachePut(value = AppCacheProperties.Type.USER_BY_ID, key = "#id"),
-            @CachePut(value = AppCacheProperties.Type.USER_BY_NAME, key = "#result.username")
+            @CachePut(value = AppCacheProperties.Types.USER_BY_ID, key = "#id"),
+            @CachePut(value = AppCacheProperties.Types.USER_BY_NAME, key = "#result.username")
     })
-    @CacheEvict(value = AppCacheProperties.Type.USERS, allEntries = true)
+    @CacheEvict(value = AppCacheProperties.Types.USERS, allEntries = true)
     @Transactional
     @LazyLogger
     public User update(Long id, User model) {
@@ -296,9 +296,9 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Caching(evict = {
-            @CacheEvict(value = AppCacheProperties.Type.USER_BY_NAME, allEntries = true),
-            @CacheEvict(value = AppCacheProperties.Type.USER_BY_ID, key = "#id"),
-            @CacheEvict(value = AppCacheProperties.Type.USERS, allEntries = true)
+            @CacheEvict(value = AppCacheProperties.Types.USER_BY_NAME, allEntries = true),
+            @CacheEvict(value = AppCacheProperties.Types.USER_BY_ID, key = "#id"),
+            @CacheEvict(value = AppCacheProperties.Types.USERS, allEntries = true)
     })
     @Transactional
     @LazyLogger

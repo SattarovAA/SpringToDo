@@ -16,8 +16,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.logout.HeaderWriterLogoutHandler;
-import org.springframework.security.web.header.writers.ClearSiteDataHeaderWriter;
 
 /**
  * Security configuration to implement authorization and authentication.
@@ -97,8 +95,7 @@ public class SecurityConfig {
             HttpSecurity http,
             AuthenticationManager authenticationManager
     ) throws Exception {
-//        HeaderWriterLogoutHandler clearSiteData = new HeaderWriterLogoutHandler(new ClearSiteDataHeaderWriter());
-        http.authorizeHttpRequests((auth) -> auth
+        http.authorizeHttpRequests(auth -> auth
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/test/**").permitAll()
@@ -107,10 +104,6 @@ public class SecurityConfig {
                         .anyRequest()
                         .authenticated()
                 )
-//                .logout((logout) -> logout.addLogoutHandler(clearSiteData))
-//                .logoutUrl("/perform_logout")
-//                .invalidateHttpSession(true)
-//                .deleteCookies("JSESSIONID")
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(Customizer.withDefaults())
                 .sessionManagement(httpSecuritySessionManagementConfigurer ->

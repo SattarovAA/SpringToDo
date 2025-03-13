@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers
 @DisplayName("TaskRepositoryImplTest Tests")
-public class TaskRepositoryImplTest {
+class TaskRepositoryImplTest {
     private TaskRepositoryImpl repository;
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -42,20 +42,20 @@ public class TaskRepositoryImplTest {
     private static final LocalDateTime BEFORE_MILLENNIUM = MILLENNIUM.minusDays(5);
 
     @Container
-    static PostgreSQLContainer<?> POSTGRE_CONTAINER =
+    static PostgreSQLContainer<?> postgreContainer =
             new PostgreSQLContainer<>("postgres:latest")
                     .withReuse(true);
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRE_CONTAINER::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRE_CONTAINER::getUsername);
-        registry.add("spring.datasource.password", POSTGRE_CONTAINER::getPassword);
+        registry.add("spring.datasource.url", postgreContainer::getJdbcUrl);
+        registry.add("spring.datasource.username", postgreContainer::getUsername);
+        registry.add("spring.datasource.password", postgreContainer::getPassword);
     }
 
     @AfterAll
     static void afterAll() {
-        POSTGRE_CONTAINER.stop();
+        postgreContainer.stop();
     }
 
     @BeforeEach

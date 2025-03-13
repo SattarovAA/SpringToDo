@@ -82,6 +82,7 @@ public class UserRepositoryImpl implements UserRepository {
                 id
         );
     }
+
     /**
      * Find {@link User}
      * with {@code User.username} equals {@code username}.
@@ -288,7 +289,8 @@ public class UserRepositoryImpl implements UserRepository {
 
     /**
      * Грустно и костыльно, но работает.
-     * {code taskTest} for wasNull() check.
+     * <br>
+     * {code rs.getLong("author_id")} for wasNull() check.
      *
      * @return mapper for {@link User} with filled {@code taskList} fields
      * @see #fillUserFields(ResultSet, List)
@@ -298,7 +300,7 @@ public class UserRepositoryImpl implements UserRepository {
         return (rs, rn) -> {
             List<Task> taskList = new ArrayList<>();
             User user = fillUserFields(rs, taskList);
-            long taskTest = rs.getLong("author_id");
+            rs.getLong("author_id");
             if (!rs.wasNull()) {
                 do {
                     Task task = fillTaskFields(rs);

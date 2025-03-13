@@ -25,12 +25,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Testcontainers
 @DisplayName("AppControllerTest tests")
-public class AppControllerTest {
-    private final static String urlTemplate = "/api/test";
-    private final static String publicResponseMessage = "Public response data.";
-    private final static String adminResponseMessage = "Admin response data.";
-    private final static String userResponseMessage = "User response data.";
-    private final static String anyResponseMessage = "Authenticated response data.";
+class AppControllerTest {
+    private static final String URL_TEMPLATE = "/api/test";
+    private static final String PUBLIC_RESPONSE_MESSAGE = "Public response data.";
+    private static final String ADMIN_RESPONSE_MESSAGE = "Admin response data.";
+    private static final String USER_RESPONSE_MESSAGE = "User response data.";
+    private static final String ANY_RESPONSE_MESSAGE = "Authenticated response data.";
     @Autowired
     private MockMvc mockMvc;
 
@@ -65,39 +65,39 @@ public class AppControllerTest {
     @WithMockUser(username = "testAdmin", roles = {"ADMIN"})
     @DisplayName("allAccess test with admin user.")
     void givenAdminUser_whenAllAccessUrl_thenMessage() throws Exception {
-        mockMvc.perform(get(urlTemplate + "/all"))
-                .andExpect(content().string(publicResponseMessage));
+        mockMvc.perform(get(URL_TEMPLATE + "/all"))
+                .andExpect(content().string(PUBLIC_RESPONSE_MESSAGE));
     }
 
     @Test
     @WithMockUser(username = "testUser")
     @DisplayName("allAccess test with simple user.")
     void givenSimpleUser_whenAllAccessUrl_thenMessage() throws Exception {
-        mockMvc.perform(get(urlTemplate + "/all"))
-                .andExpect(content().string(publicResponseMessage));
+        mockMvc.perform(get(URL_TEMPLATE + "/all"))
+                .andExpect(content().string(PUBLIC_RESPONSE_MESSAGE));
     }
 
     @Test
     @WithAnonymousUser
     @DisplayName("allAccess test with anonymous user.")
     void givenAnonymousUser_whenAllAccessUrl_thenMessage() throws Exception {
-        mockMvc.perform(get(urlTemplate + "/all"))
-                .andExpect(content().string(publicResponseMessage));
+        mockMvc.perform(get(URL_TEMPLATE + "/all"))
+                .andExpect(content().string(PUBLIC_RESPONSE_MESSAGE));
     }
 
     @Test
     @WithMockUser(username = "testAdmin", roles = {"ADMIN"})
     @DisplayName("adminAccess test with admin user.")
     void givenAdminUser_whenAdminAccessUrl_thenMessage() throws Exception {
-        mockMvc.perform(get(urlTemplate + "/admin"))
-                .andExpect(content().string(adminResponseMessage));
+        mockMvc.perform(get(URL_TEMPLATE + "/admin"))
+                .andExpect(content().string(ADMIN_RESPONSE_MESSAGE));
     }
 
     @Test
     @WithMockUser(username = "testUser")
     @DisplayName("adminAccess test with simple user.")
     void givenSimpleUser_whenAdminAccessUrl_thenMessage() throws Exception {
-        mockMvc.perform(get(urlTemplate + "/admin"))
+        mockMvc.perform(get(URL_TEMPLATE + "/admin"))
                 .andExpect(status().isForbidden());
     }
 
@@ -105,7 +105,7 @@ public class AppControllerTest {
     @WithAnonymousUser
     @DisplayName("adminAccess test with anonymous user.")
     void givenAnonymousUser_whenAdminAccessUrl_thenMessage() throws Exception {
-        mockMvc.perform(get(urlTemplate + "/admin"))
+        mockMvc.perform(get(URL_TEMPLATE + "/admin"))
                 .andExpect(status().isForbidden());
     }
 
@@ -113,7 +113,7 @@ public class AppControllerTest {
     @WithMockUser(username = "testAdmin", roles = {"ADMIN"})
     @DisplayName("userAccess test with admin user.")
     void givenAdminUser_whenUserAccessUrl_thenMessage() throws Exception {
-        mockMvc.perform(get(urlTemplate + "/user"))
+        mockMvc.perform(get(URL_TEMPLATE + "/user"))
                 .andExpect(status().isForbidden());
     }
 
@@ -121,15 +121,15 @@ public class AppControllerTest {
     @WithMockUser(username = "testUser")
     @DisplayName("anyAccess test with simple user.")
     void givenSimpleUser_whenUserAccessUrl_thenMessage() throws Exception {
-        mockMvc.perform(get(urlTemplate + "/user"))
-                .andExpect(content().string(userResponseMessage));
+        mockMvc.perform(get(URL_TEMPLATE + "/user"))
+                .andExpect(content().string(USER_RESPONSE_MESSAGE));
     }
 
     @Test
     @WithAnonymousUser
     @DisplayName("userAccess test with anonymous user.")
     void givenAnonymousUser_whenUserAccessUrl_thenMessage() throws Exception {
-        mockMvc.perform(get(urlTemplate + "/user"))
+        mockMvc.perform(get(URL_TEMPLATE + "/user"))
                 .andExpect(status().isForbidden());
     }
 
@@ -137,23 +137,23 @@ public class AppControllerTest {
     @WithMockUser(username = "testAdmin", roles = {"ADMIN"})
     @DisplayName("anyAccess test with admin user.")
     void givenAdminUser_whenAnyAccessUrl_thenMessage() throws Exception {
-        mockMvc.perform(get(urlTemplate + "/any"))
-                .andExpect(content().string(anyResponseMessage));
+        mockMvc.perform(get(URL_TEMPLATE + "/any"))
+                .andExpect(content().string(ANY_RESPONSE_MESSAGE));
     }
 
     @Test
     @WithMockUser(username = "testUser")
     @DisplayName("anyAccess test with simple user.")
     void givenSimpleUser_whenAnyAccessUrl_thenMessage() throws Exception {
-        mockMvc.perform(get(urlTemplate + "/any"))
-                .andExpect(content().string(anyResponseMessage));
+        mockMvc.perform(get(URL_TEMPLATE + "/any"))
+                .andExpect(content().string(ANY_RESPONSE_MESSAGE));
     }
 
     @Test
     @WithAnonymousUser
     @DisplayName("anyAccess test with anonymous user.")
     void givenAnonymousUser_whenAnyAccessUrl_thenMessage() throws Exception {
-        mockMvc.perform(get(urlTemplate + "/any"))
+        mockMvc.perform(get(URL_TEMPLATE + "/any"))
                 .andExpect(status().isForbidden());
     }
 }

@@ -3,10 +3,7 @@ package com.emobile.springtodo.model.dto.user;
 import com.emobile.springtodo.model.security.RoleType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import org.springframework.beans.factory.annotation.Value;
 
 /**
  * Request DTO for working with entity user.

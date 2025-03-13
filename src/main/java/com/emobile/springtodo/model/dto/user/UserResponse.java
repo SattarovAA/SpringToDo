@@ -1,9 +1,6 @@
 package com.emobile.springtodo.model.dto.user;
 
-import com.emobile.springtodo.model.dto.task.TaskResponse;
 import com.emobile.springtodo.model.security.RoleType;
-
-import java.util.List;
 
 /**
  * Response DTO for working with entity user.

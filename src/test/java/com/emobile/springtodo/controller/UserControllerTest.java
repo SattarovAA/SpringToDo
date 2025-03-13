@@ -32,8 +32,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @Testcontainers
 @DisplayName("UserControllerTest tests")
-public class UserControllerTest {
-    private final static String urlTemplate = "/api/user";
+class UserControllerTest {
+    private static final String URL_TEMPLATE = "/api/user";
     @Autowired
     JdbcTemplate jdbcTemplate;
     @MockitoBean
@@ -81,7 +81,7 @@ public class UserControllerTest {
     @DisplayName("getById test: get user data by id from anonymous user.")
     void givenAnonymousUserWhenGetByIdUrlThenStatusUnauthorized()
             throws Exception {
-        String getByIdUrl = urlTemplate + "/1";
+        String getByIdUrl = URL_TEMPLATE + "/1";
 
         mockMvc.perform(get(getByIdUrl))
                 .andExpect(status().isUnauthorized());
@@ -92,7 +92,7 @@ public class UserControllerTest {
     @DisplayName("getById test: get user data by not existed user id.")
     void givenNotExistedUserIdWhenGetByIdUrlThenStatusNotFound()
             throws Exception {
-        String getByIdUrl = urlTemplate + "/1";
+        String getByIdUrl = URL_TEMPLATE + "/1";
 
         mockMvc.perform(get(getByIdUrl))
                 .andExpect(status().isNotFound());
@@ -104,7 +104,7 @@ public class UserControllerTest {
     void givenExistedUserIdWhenGetByIdUrlThenUserResponse()
             throws Exception {
         long expectedId = 1L;
-        String getByIdUrl = urlTemplate + "/" + expectedId;
+        String getByIdUrl = URL_TEMPLATE + "/" + expectedId;
         String expectedUsername = "username";
         String expectedPass = "encodedPass";
         String expectedEmail = "email@c.om";
@@ -137,7 +137,7 @@ public class UserControllerTest {
     @DisplayName("update test: update user data by id from anonymous user.")
     void givenAnonymousUserWhenUpdateUrlThenStatusUnauthorized()
             throws Exception {
-        String updateUrl = urlTemplate + "/1";
+        String updateUrl = URL_TEMPLATE + "/1";
 
         mockMvc.perform(put(updateUrl))
                 .andExpect(status().isUnauthorized());
@@ -149,7 +149,7 @@ public class UserControllerTest {
     void givenInsertJsonWhenUpdateUrlThenUserResponse()
             throws Exception {
         long expectedId = 1L;
-        String updateUrl = urlTemplate + "/" + expectedId;
+        String updateUrl = URL_TEMPLATE + "/" + expectedId;
         String oldUsername = "username";
         String oldPass = "password";
         String oldEmail = "email@c.om";
@@ -197,7 +197,7 @@ public class UserControllerTest {
     @DisplayName("delete test: delete user data by id from anonymous user.")
     void givenAnonymousUserWhenDeleteUrlThenStatusUnauthorized()
             throws Exception {
-        String deleteUrl = urlTemplate + "/1";
+        String deleteUrl = URL_TEMPLATE + "/1";
 
         mockMvc.perform(delete(deleteUrl))
                 .andExpect(status().isUnauthorized());
@@ -208,7 +208,7 @@ public class UserControllerTest {
     @DisplayName("delete test: delete user data by not existed id.")
     void givenNotExistedUserIdWhenDeleteUrlThenStatusNotFound()
             throws Exception {
-        String deleteUrl = urlTemplate + "/1";
+        String deleteUrl = URL_TEMPLATE + "/1";
 
         mockMvc.perform(delete(deleteUrl))
                 .andExpect(status().isNotFound());
@@ -220,7 +220,7 @@ public class UserControllerTest {
     void givenExistedUserIdWhenDeleteUrlThenStatusNoContent()
             throws Exception {
         long expectedId = 1L;
-        String deleteUrl = urlTemplate + "/" + expectedId;
+        String deleteUrl = URL_TEMPLATE + "/" + expectedId;
         String expectedUsername = "username";
         String expectedPass = "encodedPass";
         String expectedEmail = "email@c.om";

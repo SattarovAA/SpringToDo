@@ -3,7 +3,6 @@ package com.emobile.springtodo.controller;
 import com.emobile.springtodo.aop.LazyLogger;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,10 +22,9 @@ public class AppController {
     @Operation(
             summary = "Testing endpoint with public access.",
             tags = {"test", "get", "access", "public"})
-    @ApiResponses({
-            @ApiResponse(responseCode = "200"),
-            @ApiResponse(responseCode = "404"),
-            @ApiResponse(responseCode = "500")})
+    @ApiResponse(responseCode = "200")
+    @ApiResponse(responseCode = "404")
+    @ApiResponse(responseCode = "500")
     @GetMapping("/all")
     @LazyLogger
     public String allAccess() {
@@ -41,11 +39,10 @@ public class AppController {
     @Operation(
             summary = "Testing endpoint with admin access.",
             tags = {"test", "get", "access"})
-    @ApiResponses({
-            @ApiResponse(responseCode = "200"),
-            @ApiResponse(responseCode = "403"),
-            @ApiResponse(responseCode = "404"),
-            @ApiResponse(responseCode = "500")})
+    @ApiResponse(responseCode = "200")
+    @ApiResponse(responseCode = "403")
+    @ApiResponse(responseCode = "404")
+    @ApiResponse(responseCode = "500")
     @GetMapping("/admin")
     @PreAuthorize("hasRole('ADMIN')")
     @LazyLogger
@@ -61,11 +58,10 @@ public class AppController {
     @Operation(
             summary = "Testing endpoint with manager access.",
             tags = {"test", "get", "access"})
-    @ApiResponses({
-            @ApiResponse(responseCode = "200"),
-            @ApiResponse(responseCode = "403"),
-            @ApiResponse(responseCode = "404"),
-            @ApiResponse(responseCode = "500")})
+    @ApiResponse(responseCode = "200")
+    @ApiResponse(responseCode = "403")
+    @ApiResponse(responseCode = "404")
+    @ApiResponse(responseCode = "500")
     @GetMapping("/manager")
     @PreAuthorize("hasRole('MODERATOR')")
     @LazyLogger
@@ -81,11 +77,10 @@ public class AppController {
     @Operation(
             summary = "Testing endpoint with user access.",
             tags = {"test", "get", "access"})
-    @ApiResponses({
-            @ApiResponse(responseCode = "200"),
-            @ApiResponse(responseCode = "403"),
-            @ApiResponse(responseCode = "404"),
-            @ApiResponse(responseCode = "500")})
+    @ApiResponse(responseCode = "200")
+    @ApiResponse(responseCode = "403")
+    @ApiResponse(responseCode = "404")
+    @ApiResponse(responseCode = "500")
     @GetMapping("/user")
     @PreAuthorize("hasRole('USER')")
     @LazyLogger
@@ -102,11 +97,10 @@ public class AppController {
             summary = "Testing endpoint with any auth access.",
             description = "user or admin access.",
             tags = {"test", "get", "access"})
-    @ApiResponses({
-            @ApiResponse(responseCode = "200"),
-            @ApiResponse(responseCode = "403"),
-            @ApiResponse(responseCode = "404"),
-            @ApiResponse(responseCode = "500")})
+    @ApiResponse(responseCode = "200")
+    @ApiResponse(responseCode = "403")
+    @ApiResponse(responseCode = "404")
+    @ApiResponse(responseCode = "500")
     @GetMapping("/any")
     @PreAuthorize("isAuthenticated()")
     @LazyLogger

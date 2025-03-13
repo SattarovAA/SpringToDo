@@ -6,6 +6,10 @@ import org.springframework.jdbc.core.RowMapper;
 import java.util.Optional;
 
 public class JdbcUtil {
+    private JdbcUtil() {
+        throw new IllegalStateException("Utility class");
+    }
+
     /**
      * Optional Extractor.
      *

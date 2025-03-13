@@ -9,7 +9,6 @@ import com.emobile.springtodo.model.security.RoleType;
 import com.emobile.springtodo.model.util.Page;
 import com.emobile.springtodo.model.util.PageInfo;
 import com.emobile.springtodo.repository.TaskRepository;
-import com.emobile.springtodo.service.impl.TaskServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -21,7 +20,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.time.*;
+import java.time.Clock;
+import java.time.LocalDateTime;
+import java.time.Month;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -37,7 +39,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("UserServiceImplTest Tests")
-public class TaskServiceImplTest {
+class TaskServiceImplTest {
     private TaskServiceImpl taskService;
     @Mock
     private TaskRepository taskRepository;

@@ -13,7 +13,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -64,13 +63,11 @@ public class UserController {
             summary = "Get all users.",
             description = "Only with admin access.",
             tags = {"user", "get"})
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", content = {
-                    @Content(schema = @Schema(implementation = UserListResponse.class))
-            }),
-            @ApiResponse(responseCode = "401"),
-            @ApiResponse(responseCode = "403")
+    @ApiResponse(responseCode = "200", content = {
+            @Content(schema = @Schema(implementation = UserListResponse.class))
     })
+    @ApiResponse(responseCode = "401")
+    @ApiResponse(responseCode = "403")
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping()
     @LazyLogger
@@ -97,13 +94,11 @@ public class UserController {
                           "The response is User object with " +
                           "id, username, password, email, content roles.",
             tags = {"user", "get"})
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", content = {
-                    @Content(schema = @Schema(implementation = UserResponseWith.class))
-            }),
-            @ApiResponse(responseCode = "400"),
-            @ApiResponse(responseCode = "401")
+    @ApiResponse(responseCode = "200", content = {
+            @Content(schema = @Schema(implementation = UserResponseWith.class))
     })
+    @ApiResponse(responseCode = "400")
+    @ApiResponse(responseCode = "401")
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @GetMapping(path = "/{id}")
     @LazyLogger
@@ -123,13 +118,11 @@ public class UserController {
     @Operation(
             summary = "Update user by specifying its id.",
             tags = {"user", "put"})
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", content = {
-                    @Content(schema = @Schema(implementation = UserResponse.class))
-            }),
-            @ApiResponse(responseCode = "400"),
-            @ApiResponse(responseCode = "401"),
+    @ApiResponse(responseCode = "200", content = {
+            @Content(schema = @Schema(implementation = UserResponse.class))
     })
+    @ApiResponse(responseCode = "400")
+    @ApiResponse(responseCode = "401")
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @PutMapping(path = "/{id}")
     @LazyLogger
@@ -156,11 +149,9 @@ public class UserController {
     @Operation(
             summary = "Delete user by specifying its id.",
             tags = {"user", "delete"})
-    @ApiResponses({
-            @ApiResponse(responseCode = "204"),
-            @ApiResponse(responseCode = "400"),
-            @ApiResponse(responseCode = "401"),
-    })
+    @ApiResponse(responseCode = "204")
+    @ApiResponse(responseCode = "400")
+    @ApiResponse(responseCode = "401")
     @PreAuthorize("hasAnyRole('USER','ADMIN')")
     @DeleteMapping(path = "/{id}")
     @LazyLogger

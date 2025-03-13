@@ -7,7 +7,6 @@ import com.emobile.springtodo.model.util.Page;
 import com.emobile.springtodo.model.util.PageInfo;
 import com.emobile.springtodo.repository.UserRepository;
 import com.emobile.springtodo.service.TaskService;
-import com.emobile.springtodo.service.impl.UserServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,7 +29,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("UserServiceImplTest Tests")
-public class UserServiceImplTest {
+class UserServiceImplTest {
     private UserServiceImpl userService;
     @Mock
     private UserRepository userRepository;
