@@ -1,0 +1,5 @@
+docker run -d --name gitlab-runner-name
+  --restart always
+  -v /var/run/docker.sock:/var/run/docker.sock
+  -v /home/user/runner_name:/etc/gitlab-runner:z
+  gitlab/gitlab-runner:latest
