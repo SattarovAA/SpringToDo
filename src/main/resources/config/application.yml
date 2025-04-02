@@ -18,7 +18,7 @@ app:
   logger:
     slf4j: false
   redis:
-    enabled: ${REDIS_ENABLED:false}
+    enabled: ${REDIS_ENABLED:true}
   cache:
     cacheNames:
       - users
