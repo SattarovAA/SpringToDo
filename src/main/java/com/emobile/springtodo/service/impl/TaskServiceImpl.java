@@ -96,7 +96,12 @@ public class TaskServiceImpl implements TaskService {
      * @return object of type {@link Task} that was saved.
      */
     @Override
-    @CacheEvict(value = AppCacheProperties.Types.TASKS, allEntries = true)
+    @Caching(evict = {
+            @CacheEvict(value = AppCacheProperties.Types.TASKS, allEntries = true),
+            @CacheEvict(value = AppCacheProperties.Types.USERS, allEntries = true),
+            @CacheEvict(value = AppCacheProperties.Types.USER_BY_ID, key = "#result.authorId"),
+            @CacheEvict(value = AppCacheProperties.Types.USER_BY_NAME, allEntries = true)
+    })
     @Transactional
     @LazyLogger
     public Task save(Task model) {
@@ -112,8 +117,14 @@ public class TaskServiceImpl implements TaskService {
      * @return object of type {@link Task} that was updated.
      */
     @Override
-    @CachePut(value = AppCacheProperties.Types.TASK_BY_ID, key = "#id")
-    @CacheEvict(value = AppCacheProperties.Types.TASKS, allEntries = true)
+    @Caching(put = {
+            @CachePut(value = AppCacheProperties.Types.TASK_BY_ID, key = "#id")
+    }, evict = {
+            @CacheEvict(value = AppCacheProperties.Types.TASKS, allEntries = true),
+            @CacheEvict(value = AppCacheProperties.Types.USERS, allEntries = true),
+            @CacheEvict(value = AppCacheProperties.Types.USER_BY_ID, key = "#result.authorId"),
+            @CacheEvict(value = AppCacheProperties.Types.USER_BY_NAME, allEntries = true)
+    })
     @Transactional
     @LazyLogger
     public Task update(Long id, Task model) {
@@ -181,7 +192,10 @@ public class TaskServiceImpl implements TaskService {
     @Override
     @Caching(evict = {
             @CacheEvict(value = AppCacheProperties.Types.TASK_BY_ID, key = "#id"),
-            @CacheEvict(value = AppCacheProperties.Types.TASKS, allEntries = true)
+            @CacheEvict(value = AppCacheProperties.Types.TASKS, allEntries = true),
+            @CacheEvict(value = AppCacheProperties.Types.USERS, allEntries = true),
+            @CacheEvict(value = AppCacheProperties.Types.USER_BY_ID, allEntries = true),
+            @CacheEvict(value = AppCacheProperties.Types.USER_BY_NAME, allEntries = true)
     })
     @Transactional
     @LazyLogger
@@ -196,7 +210,10 @@ public class TaskServiceImpl implements TaskService {
     @Override
     @Caching(evict = {
             @CacheEvict(value = AppCacheProperties.Types.TASK_BY_ID, allEntries = true),
-            @CacheEvict(value = AppCacheProperties.Types.TASKS, allEntries = true)
+            @CacheEvict(value = AppCacheProperties.Types.TASKS, allEntries = true),
+            @CacheEvict(value = AppCacheProperties.Types.USERS, allEntries = true),
+            @CacheEvict(value = AppCacheProperties.Types.USER_BY_ID, allEntries = true),
+            @CacheEvict(value = AppCacheProperties.Types.USER_BY_NAME, allEntries = true)
     })
     @Transactional
     @LazyLogger
@@ -211,7 +228,10 @@ public class TaskServiceImpl implements TaskService {
     @Override
     @Caching(evict = {
             @CacheEvict(value = AppCacheProperties.Types.TASK_BY_ID, allEntries = true),
-            @CacheEvict(value = AppCacheProperties.Types.TASKS, allEntries = true)
+            @CacheEvict(value = AppCacheProperties.Types.TASKS, allEntries = true),
+            @CacheEvict(value = AppCacheProperties.Types.USERS, allEntries = true),
+            @CacheEvict(value = AppCacheProperties.Types.USER_BY_ID, key = "#userId"),
+            @CacheEvict(value = AppCacheProperties.Types.USER_BY_NAME, allEntries = true)
     })
     @Transactional
     @LazyLogger
