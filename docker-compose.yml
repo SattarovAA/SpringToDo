@@ -1,0 +1,32 @@
+version: '3'
+services:
+  spring-to-do:
+    image: spring-to-do
+    depends_on:
+      - db
+      - redis
+    environment:
+      - "SERVER_URL=jdbc:postgresql://db:5432/spring_todo_db"
+      - "SERVER_USERNAME=user"
+      - "SERVER_PASS=pass"
+      - "REDIS_HOST=redis"
+      - "REDIS_PORT=6379"
+      - "FLYWAY_ENABLED=true"
+      - "REDIS_ENABLED=true"
+    ports:
+      - "8088:8088"
+  db:
+    image: postgres:latest
+    container_name: db
+    restart: always
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+      - POSTGRES_DB=spring_todo_db
+    ports:
+      - "5432:5432"
+  redis:
+    container_name: redis
+    image: redis:7.0.12
+    ports:
+      - "6379:6379"
