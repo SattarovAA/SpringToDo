@@ -1,14 +1,15 @@
 package com.emobile.springtodo.service.impl;
 
-import com.emobile.springtodo.aop.LazyLogger;
+import com.emobile.springtodo.aop.logger.LazyLogger;
+import com.emobile.springtodo.aop.session.LazySession;
+import com.emobile.springtodo.model.util.SessionAction;
+import com.emobile.springtodo.model.util.TransactionalType;
 import com.emobile.springtodo.config.property.cache.AppCacheProperties;
 import com.emobile.springtodo.exception.AlreadyExitsException;
 import com.emobile.springtodo.exception.EntityNotFoundException;
-import com.emobile.springtodo.model.entity.Task;
 import com.emobile.springtodo.model.entity.User;
 import com.emobile.springtodo.model.util.PageInfo;
 import com.emobile.springtodo.repository.UserRepository;
-import com.emobile.springtodo.service.TaskService;
 import com.emobile.springtodo.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +21,6 @@ import org.springframework.cache.annotation.Caching;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.text.MessageFormat;
 import java.util.List;
@@ -42,11 +42,6 @@ public class UserServiceImpl implements UserService {
      * {@link User} Repository.
      */
     private final UserRepository userRepository;
-    /**
-     * {@link Task} Service.
-     * To delete all task deleted user.
-     */
-    private final TaskService taskService;
     /**
      * Default PasswordEncoder.
      * Needed to define and update the field password in {@link User}.
@@ -70,7 +65,7 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Cacheable(AppCacheProperties.Types.USERS)
-    @Transactional(readOnly = true)
+    @LazySession
     @LazyLogger
     public List<User> findAll(PageInfo pageInfo) {
         return userRepository.findAll(pageInfo).content();
@@ -85,7 +80,7 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Cacheable(value = AppCacheProperties.Types.USER_BY_ID, key = "#id")
-    @Transactional(readOnly = true)
+    @LazySession(action = SessionAction.CHECK)
     @LazyLogger
     public User findById(Long id) {
         return userRepository.findById(id).orElseThrow(
@@ -107,7 +102,7 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Cacheable(value = AppCacheProperties.Types.USER_BY_NAME, key = "#username")
-    @Transactional(readOnly = true)
+    @LazySession(action = SessionAction.CHECK)
     @LazyLogger
     public User findByUsername(String username) {
         return userRepository.findByUsername(username).orElseThrow(
@@ -129,7 +124,7 @@ public class UserServiceImpl implements UserService {
     @Override
     @Cacheable(value = AppCacheProperties.Types.USER_BY_NAME, key = "#model.username")
     @CacheEvict(value = AppCacheProperties.Types.USERS, allEntries = true)
-    @Transactional
+    @LazySession(type = TransactionalType.AROUND)
     @LazyLogger
     public User save(User model) {
         model = enrich(model);
@@ -151,7 +146,7 @@ public class UserServiceImpl implements UserService {
             @CachePut(value = AppCacheProperties.Types.USER_BY_NAME, key = "#result.username")
     })
     @CacheEvict(value = AppCacheProperties.Types.USERS, allEntries = true)
-    @Transactional
+    @LazySession(type = TransactionalType.AROUND)
     @LazyLogger
     public User update(Long id, User model) {
         model = enrich(model, self.findById(id));
@@ -212,7 +207,7 @@ public class UserServiceImpl implements UserService {
      * @param username username to check.
      * @throws AlreadyExitsException if username already exist.
      */
-    @Transactional(readOnly = true)
+    @LazySession(action = SessionAction.CHECK)
     @LazyLogger
     public void checkDuplicateUsername(String username) {
         if (userRepository.existsByUsername(username)) {
@@ -234,7 +229,7 @@ public class UserServiceImpl implements UserService {
      * @throws AlreadyExitsException if username already exist
      *                               excluding {@link User} with currentUserId.
      */
-    @Transactional(readOnly = true)
+    @LazySession(action = SessionAction.CHECK)
     @LazyLogger
     public void checkDuplicateUsername(String username, Long currentUserId) {
         if (userRepository.existsByUsernameAndIdNot(username, currentUserId)) {
@@ -254,7 +249,7 @@ public class UserServiceImpl implements UserService {
      * @param email email to check.
      * @throws AlreadyExitsException if email already exist.
      */
-    @Transactional(readOnly = true)
+    @LazySession(action = SessionAction.CHECK)
     @LazyLogger
     public void checkDuplicateEmail(String email) {
         if (userRepository.existsByEmail(email)) {
@@ -276,7 +271,7 @@ public class UserServiceImpl implements UserService {
      * @throws AlreadyExitsException if email already exist
      *                               excluding {@link User} with currentUserId.
      */
-    @Transactional(readOnly = true)
+    @LazySession(action = SessionAction.CHECK)
     @LazyLogger
     public void checkDuplicateEmail(String email, Long currentUserId) {
         if (userRepository.existsByEmailAndIdNot(email, currentUserId)) {
@@ -298,13 +293,14 @@ public class UserServiceImpl implements UserService {
     @Caching(evict = {
             @CacheEvict(value = AppCacheProperties.Types.USER_BY_NAME, allEntries = true),
             @CacheEvict(value = AppCacheProperties.Types.USER_BY_ID, key = "#id"),
-            @CacheEvict(value = AppCacheProperties.Types.USERS, allEntries = true)
+            @CacheEvict(value = AppCacheProperties.Types.USERS, allEntries = true),
+            @CacheEvict(value = AppCacheProperties.Types.TASKS, allEntries = true),
+            @CacheEvict(value = AppCacheProperties.Types.TASK_BY_ID, allEntries = true)
     })
-    @Transactional
+    @LazySession(type = TransactionalType.AROUND)
     @LazyLogger
     public void deleteById(Long id) {
-        self.findById(id);
-        taskService.deleteAllByUserId(id);
-        userRepository.deleteById(id);
+        User user = self.findById(id);
+        userRepository.deleteById(user);
     }
 }

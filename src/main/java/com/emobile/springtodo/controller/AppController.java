@@ -1,6 +1,6 @@
 package com.emobile.springtodo.controller;
 
-import com.emobile.springtodo.aop.LazyLogger;
+import com.emobile.springtodo.aop.logger.LazyLogger;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;

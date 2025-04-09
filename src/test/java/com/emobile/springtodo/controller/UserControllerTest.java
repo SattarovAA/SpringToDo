@@ -1,16 +1,23 @@
 package com.emobile.springtodo.controller;
 
+import com.emobile.springtodo.model.entity.Task;
+import com.emobile.springtodo.model.entity.TaskStatus;
+import com.emobile.springtodo.model.entity.User;
+import com.emobile.springtodo.model.security.RoleType;
+import com.emobile.springtodo.repository.impl.UserRepositoryImpl;
+import com.emobile.springtodo.util.SessionUtil;
 import com.redis.testcontainers.RedisContainer;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.flywaydb.core.Flyway;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
+import org.hibernate.query.Query;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -23,6 +30,10 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.utility.DockerImageName;
 
+import java.time.LocalDateTime;
+import java.time.Month;
+import java.util.List;
+
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -34,14 +45,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisplayName("UserControllerTest tests")
 class UserControllerTest {
     private static final String URL_TEMPLATE = "/api/user";
+    private static final LocalDateTime MILLENNIUM = LocalDateTime.of(2000, Month.JANUARY, 1, 0, 0, 0);
+    private static final LocalDateTime BEFORE_MILLENNIUM = MILLENNIUM.minusDays(5);
     @Autowired
-    JdbcTemplate jdbcTemplate;
+    private SessionFactory sessionFactory;
     @MockitoBean
     PasswordEncoder passwordEncoder;
     @Autowired
     private MockMvc mockMvc;
     @Autowired
     private RedisCacheManager cacheManager;
+    private Long existedId;
+
 
     @Container
     public static final PostgreSQLContainer<?> POSTGRE_CONTAINER =
@@ -64,6 +79,15 @@ class UserControllerTest {
                 () -> REDIS_CONTAINER.getMappedPort(6379).toString());
     }
 
+    @BeforeAll
+    static void beforeAll() {
+        POSTGRE_CONTAINER.start();
+        Flyway flyway = Flyway.configure()
+                .dataSource(POSTGRE_CONTAINER.getJdbcUrl(), POSTGRE_CONTAINER.getUsername(), POSTGRE_CONTAINER.getPassword())
+                .load();
+        flyway.migrate();
+    }
+
     @AfterAll
     static void afterAll() {
         POSTGRE_CONTAINER.stop();
@@ -72,8 +96,33 @@ class UserControllerTest {
 
     @BeforeEach
     void setUp() {
-        jdbcTemplate.update("TRUNCATE users CASCADE");
         cacheManager.getCacheNames().forEach(cacheName -> cacheManager.getCache(cacheName).clear());
+
+        Session session = sessionFactory.openSession();
+        Transaction transaction = session.beginTransaction();
+
+        session.createQuery("DELETE FROM Task").executeUpdate();
+        session.createQuery("DELETE FROM User").executeUpdate();
+
+        Task test1 = new Task();
+        Task test2 = new Task();
+        User testAuthor = new User(null, "user", "pass1",
+                "email1@co.m", RoleType.ROLE_USER, List.of(test1));
+        User testAuthor2 = new User(null, "user2", "pass1",
+                "email2@co.m", RoleType.ROLE_USER, List.of(test2));
+        test1 = new Task(null, "name", "des",
+                TaskStatus.TODO, BEFORE_MILLENNIUM, MILLENNIUM, testAuthor);
+        test2 = new Task(null, "name", "des",
+                TaskStatus.TODO, BEFORE_MILLENNIUM, MILLENNIUM, testAuthor2);
+
+        session.persist(testAuthor);
+        session.persist(testAuthor2);
+        session.persist(test1);
+        session.persist(test2);
+        existedId = testAuthor.getId();
+
+        transaction.commit();
+        session.close();
     }
 
     @Test
@@ -81,7 +130,7 @@ class UserControllerTest {
     @DisplayName("getById test: get user data by id from anonymous user.")
     void givenAnonymousUserWhenGetByIdUrlThenStatusUnauthorized()
             throws Exception {
-        String getByIdUrl = URL_TEMPLATE + "/1";
+        String getByIdUrl = URL_TEMPLATE + "/" + existedId;
 
         mockMvc.perform(get(getByIdUrl))
                 .andExpect(status().isUnauthorized());
@@ -92,7 +141,7 @@ class UserControllerTest {
     @DisplayName("getById test: get user data by not existed user id.")
     void givenNotExistedUserIdWhenGetByIdUrlThenStatusNotFound()
             throws Exception {
-        String getByIdUrl = URL_TEMPLATE + "/1";
+        String getByIdUrl = URL_TEMPLATE + "/" + (existedId + 2);
 
         mockMvc.perform(get(getByIdUrl))
                 .andExpect(status().isNotFound());
@@ -103,20 +152,11 @@ class UserControllerTest {
     @DisplayName("getById test: get user data by existed user id.")
     void givenExistedUserIdWhenGetByIdUrlThenUserResponse()
             throws Exception {
-        long expectedId = 1L;
-        String getByIdUrl = URL_TEMPLATE + "/" + expectedId;
-        String expectedUsername = "username";
-        String expectedPass = "encodedPass";
-        String expectedEmail = "email@c.om";
-        String expectedRole = "ROLE_ADMIN";
-        String sql = """
-                INSERT INTO users(id, username, password, email, role)
-                VALUES (?,?,?,?,?)
-                """;
-        jdbcTemplate.update(sql,
-                expectedId, expectedUsername, expectedPass,
-                expectedEmail, expectedRole
-        );
+        String getByIdUrl = URL_TEMPLATE + "/" + existedId;
+        String expectedUsername = "user";
+        String expectedPass = "pass1";
+        String expectedEmail = "email1@co.m";
+        String expectedRole = "ROLE_USER";
 
         mockMvc.perform(get(getByIdUrl))
                 .andExpect(jsonPath("$.id").isNumber())
@@ -124,7 +164,7 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.password").isString())
                 .andExpect(jsonPath("$.email").isString())
                 .andExpect(jsonPath("$.role").isString())
-                .andExpect(jsonPath("$.id").value(expectedId))
+                .andExpect(jsonPath("$.id").value(existedId))
                 .andExpect(jsonPath("$.username").value(expectedUsername))
                 .andExpect(jsonPath("$.password").value(expectedPass))
                 .andExpect(jsonPath("$.email").value(expectedEmail))
@@ -137,7 +177,7 @@ class UserControllerTest {
     @DisplayName("update test: update user data by id from anonymous user.")
     void givenAnonymousUserWhenUpdateUrlThenStatusUnauthorized()
             throws Exception {
-        String updateUrl = URL_TEMPLATE + "/1";
+        String updateUrl = URL_TEMPLATE + "/" + existedId;
 
         mockMvc.perform(put(updateUrl))
                 .andExpect(status().isUnauthorized());
@@ -148,29 +188,18 @@ class UserControllerTest {
     @DisplayName("update test: update user data by user id from auth user.")
     void givenInsertJsonWhenUpdateUrlThenUserResponse()
             throws Exception {
-        long expectedId = 1L;
-        String updateUrl = URL_TEMPLATE + "/" + expectedId;
-        String oldUsername = "username";
-        String oldPass = "password";
-        String oldEmail = "email@c.om";
-        String oldRole = "ROLE_ADMIN";
+        String updateUrl = URL_TEMPLATE + "/" + existedId;
+        String oldEmail = "email@co.m";
+        String oldRole = "ROLE_USER";
         String expectedUsername = "user";
         String expectedPass = "encodedPass";
         String requestUserJson = """
                 {
                    "username": "user",
                    "password": "pass",
-                   "email" : "email@c.om",
-                   "roles": "ROLE_ADMIN"
+                   "email" : "email@co.m",
+                   "roles": "ROLE_USER"
                 }""";
-        String sql = """
-                INSERT INTO users(id, username, password, email, role)
-                VALUES (?,?,?,?,?)
-                """;//
-        jdbcTemplate.update(sql,
-                expectedId, oldUsername, oldPass,
-                oldEmail, oldRole
-        );
 
         when(passwordEncoder.encode("pass"))
                 .thenReturn(expectedPass);
@@ -184,7 +213,7 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.password").isString())
                 .andExpect(jsonPath("$.email").isString())
                 .andExpect(jsonPath("$.role").isString())
-                .andExpect(jsonPath("$.id").value(expectedId))
+                .andExpect(jsonPath("$.id").value(existedId))
                 .andExpect(jsonPath("$.username").value(expectedUsername))
                 .andExpect(jsonPath("$.password").value(expectedPass))
                 .andExpect(jsonPath("$.email").value(oldEmail))
@@ -197,7 +226,7 @@ class UserControllerTest {
     @DisplayName("delete test: delete user data by id from anonymous user.")
     void givenAnonymousUserWhenDeleteUrlThenStatusUnauthorized()
             throws Exception {
-        String deleteUrl = URL_TEMPLATE + "/1";
+        String deleteUrl = URL_TEMPLATE + "/" + existedId;
 
         mockMvc.perform(delete(deleteUrl))
                 .andExpect(status().isUnauthorized());
@@ -208,7 +237,7 @@ class UserControllerTest {
     @DisplayName("delete test: delete user data by not existed id.")
     void givenNotExistedUserIdWhenDeleteUrlThenStatusNotFound()
             throws Exception {
-        String deleteUrl = URL_TEMPLATE + "/1";
+        String deleteUrl = URL_TEMPLATE + "/" + (existedId + 2);
 
         mockMvc.perform(delete(deleteUrl))
                 .andExpect(status().isNotFound());
@@ -219,20 +248,8 @@ class UserControllerTest {
     @DisplayName("delete test: delete user data by existed id from auth user.")
     void givenExistedUserIdWhenDeleteUrlThenStatusNoContent()
             throws Exception {
-        long expectedId = 1L;
-        String deleteUrl = URL_TEMPLATE + "/" + expectedId;
-        String expectedUsername = "username";
-        String expectedPass = "encodedPass";
-        String expectedEmail = "email@c.om";
-        String expectedRole = "ROLE_ADMIN";
-        String sql = """
-                INSERT INTO users(id, username, password, email, role)
-                VALUES (?,?,?,?,?)
-                """;
-        jdbcTemplate.update(sql,
-                expectedId, expectedUsername, expectedPass,
-                expectedEmail, expectedRole
-        );
+        String deleteUrl = URL_TEMPLATE + "/" + existedId;
+
         mockMvc.perform(delete(deleteUrl))
                 .andExpect(status().isNoContent());
     }

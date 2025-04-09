@@ -8,10 +8,8 @@ import com.emobile.springtodo.model.entity.Task;
 public interface TaskRepository extends CrudRepository<Task> {
     /**
      * Delete all {@link Task} objects in database.
-     *
-     * @return {@code true} if success
      */
-    boolean deleteAll();
+    void deleteAll();
 
     /**
      * Delete all {@link Task} objects in database
