@@ -1,18 +1,20 @@
-package com.emobile.springtodo.repository.impl;
+package com.emobile.springtodo.repository.jpa;
 
 import com.emobile.springtodo.model.entity.Task;
 import com.emobile.springtodo.model.entity.TaskStatus;
 import com.emobile.springtodo.model.entity.User;
 import com.emobile.springtodo.model.security.RoleType;
-import com.emobile.springtodo.model.util.Page;
-import com.emobile.springtodo.model.util.PageInfo;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -33,9 +35,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers
-@DisplayName("UserRepositoryImpl Tests")
-class UserRepositoryImplTest {
-    private UserRepositoryImpl repository;
+@DisplayName("UserRepository Tests")
+class UserRepositoryTest {
+    @Autowired
+    private UserRepository repository;
+    @Autowired
+    EntityManager entityManager;
     @Autowired
     private JdbcTemplate jdbcTemplate;
     private static final LocalDateTime MILLENNIUM = LocalDateTime.of(2000, Month.JANUARY, 1, 0, 0, 0);
@@ -57,21 +62,15 @@ class UserRepositoryImplTest {
         postgreContainer.stop();
     }
 
-    @BeforeEach
-    void setUp() {
-        repository = new UserRepositoryImpl(jdbcTemplate);
-        jdbcTemplate.update("TRUNCATE users CASCADE");
-    }
-
     @Test
     @DisplayName("findAll test: get all user data.")
     void givenPageInfoWhenGetAllThenListUser() {
-        PageInfo pageInfo = new PageInfo(5, 1);
+        Pageable pageInfo = PageRequest.of(0, 5);
         User test1 = new User(2L, "test1", "pass1",
                 "email1@co.m", RoleType.ROLE_USER, List.of());
         User test2 = new User(3L, "test2", "pass2",
                 "email2@co.m", RoleType.ROLE_ADMIN, List.of());
-        Page<User> expected = new Page<>(List.of(test1, test2));
+        Page<User> expected = new PageImpl<>(List.of(test1, test2), pageInfo, 2);
         addToDb(test1);
         addToDb(test2);
 
@@ -84,9 +83,11 @@ class UserRepositoryImplTest {
     @DisplayName("findById test: get user data by id.")
     void givenExistingIdWhenGetByIdThenUser() {
         Long userId = 2L;
-        Task testTask = new Task(2L, "name", "des",
-                TaskStatus.TODO, BEFORE_MILLENNIUM, MILLENNIUM, userId);
         User test1 = new User(userId, "test1", "pass1",
+                "email1@co.m", RoleType.ROLE_USER, List.of());
+        Task testTask = new Task(2L, "name", "des",
+                TaskStatus.TODO, BEFORE_MILLENNIUM, MILLENNIUM, test1);
+        User expected = new User(userId, "test1", "pass1",
                 "email1@co.m", RoleType.ROLE_USER, List.of(testTask));
         addToDb(test1);
         addToDb(testTask);
@@ -94,7 +95,7 @@ class UserRepositoryImplTest {
         Optional<User> actual = repository.findById(userId);
 
         assertTrue(actual.isPresent());
-        assertEquals(test1, actual.get());
+        assertEquals(expected, actual.get());
     }
 
     @Test
@@ -111,9 +112,11 @@ class UserRepositoryImplTest {
     @DisplayName("findByUsername test: get user data by name.")
     void givenExistingNameWhenGetByIdThenUser() {
         String userUsername = "user";
-        Task testTask = new Task(2L, "name", "des",
-                TaskStatus.TODO, BEFORE_MILLENNIUM, MILLENNIUM, 2L);
         User test1 = new User(2L, userUsername, "pass1",
+                "email1@co.m", RoleType.ROLE_USER, List.of());
+        Task testTask = new Task(2L, "name", "des",
+                TaskStatus.TODO, BEFORE_MILLENNIUM, MILLENNIUM, test1);
+        User expected = new User(2L, userUsername, "pass1",
                 "email1@co.m", RoleType.ROLE_USER, List.of(testTask));
         addToDb(test1);
         addToDb(testTask);
@@ -121,7 +124,7 @@ class UserRepositoryImplTest {
         Optional<User> actual = repository.findByUsername(userUsername);
 
         assertTrue(actual.isPresent());
-        assertEquals(test1, actual.get());
+        assertEquals(expected, actual.get());
     }
 
     @Test
@@ -141,6 +144,7 @@ class UserRepositoryImplTest {
                 "email2@co.m", RoleType.ROLE_USER, List.of());
 
         repository.save(userToSave);
+        entityManager.flush();
 
         assertTrue(existsInDb(userToSave));
     }
@@ -154,7 +158,8 @@ class UserRepositoryImplTest {
                 "email2@co.m", RoleType.ROLE_USER, List.of());
         addToDb(test1);
 
-        repository.update(expected);
+        repository.save(expected);
+        entityManager.flush();
 
         assertTrue(existsInDb(expected));
     }
@@ -168,6 +173,8 @@ class UserRepositoryImplTest {
         addToDb(test1);
 
         repository.deleteById(userId);
+        entityManager.flush();
+
         assertFalse(existsInDb(test1));
     }
 

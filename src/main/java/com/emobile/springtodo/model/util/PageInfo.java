@@ -33,5 +33,5 @@ public record PageInfo(
     /**
      * Minimum size of the number field.
      */
-    private static final int MIN_NUMBER_SIZE = 1;
+    private static final int MIN_NUMBER_SIZE = 0;
 }

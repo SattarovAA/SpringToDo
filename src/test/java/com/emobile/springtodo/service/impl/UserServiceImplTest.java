@@ -3,9 +3,8 @@ package com.emobile.springtodo.service.impl;
 import com.emobile.springtodo.exception.EntityNotFoundException;
 import com.emobile.springtodo.model.entity.User;
 import com.emobile.springtodo.model.security.RoleType;
-import com.emobile.springtodo.model.util.Page;
 import com.emobile.springtodo.model.util.PageInfo;
-import com.emobile.springtodo.repository.UserRepository;
+import com.emobile.springtodo.repository.jpa.UserRepository;
 import com.emobile.springtodo.service.TaskService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -13,6 +12,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.ArrayList;
@@ -34,14 +36,12 @@ class UserServiceImplTest {
     @Mock
     private UserRepository userRepository;
     @Mock
-    private TaskService taskService;
-    @Mock
     private PasswordEncoder passwordEncoder;
 
 
     @BeforeEach
     void setUp() {
-        userService = new UserServiceImpl(userRepository, taskService, passwordEncoder);
+        userService = new UserServiceImpl(userRepository, passwordEncoder);
         userService.setSelf(userService);
     }
 
@@ -52,12 +52,12 @@ class UserServiceImplTest {
                 new User(),
                 new User()
         ));
-        PageInfo pageInfo = new PageInfo(0, 10);
+        Pageable pageInfo = PageRequest.of(0, 10);
 
         when(userRepository.findAll(pageInfo))
-                .thenReturn(new Page<>(userList));
+                .thenReturn(new PageImpl<>(userList));
 
-        List<User> actual = userService.findAll(pageInfo);
+        List<User> actual = userService.findAll(new PageInfo(10, 0));
 
         assertEquals(userList.size(), actual.size());
         verify(userRepository, times(1))
@@ -199,7 +199,7 @@ class UserServiceImplTest {
 
         when(userRepository.findById(userId))
                 .thenReturn(Optional.of(userToUpdate));
-        when(userRepository.update(expected))
+        when(userRepository.save(expected))
                 .thenReturn(expected);
         when(passwordEncoder.encode(defaultPass))
                 .thenReturn(defaultPass);
@@ -208,7 +208,7 @@ class UserServiceImplTest {
 
         assertEquals(expected, actual);
         verify(userRepository, times(1))
-                .update(expected);
+                .save(expected);
         verify(userRepository, times(1))
                 .findById(1L);
     }
@@ -229,7 +229,7 @@ class UserServiceImplTest {
 
         when(userRepository.findById(userId))
                 .thenReturn(Optional.of(userToUpdate));
-        when(userRepository.update(userToUpdate))
+        when(userRepository.save(userToUpdate))
                 .thenReturn(userToUpdate);
         when(passwordEncoder.encode(defaultPass))
                 .thenReturn(defaultPass);
@@ -238,7 +238,7 @@ class UserServiceImplTest {
 
         assertEquals(userToUpdate, actual);
         verify(userRepository, times(1))
-                .update(userToUpdate);
+                .save(userToUpdate);
         verify(userRepository, times(1))
                 .findById(1L);
     }
@@ -265,7 +265,7 @@ class UserServiceImplTest {
                 "UserId is incorrect."
         );
         verify(userRepository, times(0))
-                .update(any());
+                .save(any());
         verify(userRepository, times(1))
                 .findById(any());
     }
