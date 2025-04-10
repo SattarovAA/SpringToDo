@@ -6,6 +6,7 @@ import com.emobile.springtodo.model.dto.task.TaskResponse;
 import com.emobile.springtodo.model.dto.task.TaskSaveRequest;
 import com.emobile.springtodo.model.entity.Task;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 import org.mapstruct.ReportingPolicy;
 
@@ -45,8 +46,7 @@ public interface TaskMapper {
      * @param model {@link Task} for mapping.
      * @return mapped {@link TaskResponse}.
      */
-//    @Mapping(target = "createdAt", qualifiedByName = "OffsetDateTimeToString")
-//    @Mapping(target = "updatedAt", qualifiedByName = "OffsetDateTimeToString")
+    @Mapping(source = "author.id", target = "authorId")
     TaskResponse modelToResponse(Task model);
 
 

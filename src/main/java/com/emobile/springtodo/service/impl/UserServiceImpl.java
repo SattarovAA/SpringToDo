@@ -4,11 +4,9 @@ import com.emobile.springtodo.aop.LazyLogger;
 import com.emobile.springtodo.config.property.cache.AppCacheProperties;
 import com.emobile.springtodo.exception.AlreadyExitsException;
 import com.emobile.springtodo.exception.EntityNotFoundException;
-import com.emobile.springtodo.model.entity.Task;
 import com.emobile.springtodo.model.entity.User;
 import com.emobile.springtodo.model.util.PageInfo;
-import com.emobile.springtodo.repository.UserRepository;
-import com.emobile.springtodo.service.TaskService;
+import com.emobile.springtodo.repository.jpa.UserRepository;
 import com.emobile.springtodo.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +16,7 @@ import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,11 +41,6 @@ public class UserServiceImpl implements UserService {
      * {@link User} Repository.
      */
     private final UserRepository userRepository;
-    /**
-     * {@link Task} Service.
-     * To delete all task deleted user.
-     */
-    private final TaskService taskService;
     /**
      * Default PasswordEncoder.
      * Needed to define and update the field password in {@link User}.
@@ -73,7 +67,9 @@ public class UserServiceImpl implements UserService {
     @Transactional(readOnly = true)
     @LazyLogger
     public List<User> findAll(PageInfo pageInfo) {
-        return userRepository.findAll(pageInfo).content();
+        return userRepository.findAll(
+                PageRequest.of(pageInfo.pageNumber(), pageInfo.pageSize())
+        ).getContent();
     }
 
     /**
@@ -157,7 +153,7 @@ public class UserServiceImpl implements UserService {
         model = enrich(model, self.findById(id));
         self.checkDuplicateUsername(model.getUsername(), model.getId());
         self.checkDuplicateEmail(model.getEmail(), model.getId());
-        return userRepository.update(model);
+        return userRepository.save(model);
     }
 
     /**
@@ -298,13 +294,14 @@ public class UserServiceImpl implements UserService {
     @Caching(evict = {
             @CacheEvict(value = AppCacheProperties.Types.USER_BY_NAME, allEntries = true),
             @CacheEvict(value = AppCacheProperties.Types.USER_BY_ID, key = "#id"),
-            @CacheEvict(value = AppCacheProperties.Types.USERS, allEntries = true)
+            @CacheEvict(value = AppCacheProperties.Types.USERS, allEntries = true),
+            @CacheEvict(value = AppCacheProperties.Types.TASKS, allEntries = true),
+            @CacheEvict(value = AppCacheProperties.Types.TASK_BY_ID, allEntries = true)
     })
     @Transactional
     @LazyLogger
     public void deleteById(Long id) {
         self.findById(id);
-        taskService.deleteAllByUserId(id);
         userRepository.deleteById(id);
     }
 }

@@ -1,18 +1,20 @@
-package com.emobile.springtodo.repository.impl;
+package com.emobile.springtodo.repository.jpa;
 
 import com.emobile.springtodo.model.entity.Task;
 import com.emobile.springtodo.model.entity.TaskStatus;
 import com.emobile.springtodo.model.entity.User;
 import com.emobile.springtodo.model.security.RoleType;
-import com.emobile.springtodo.model.util.Page;
-import com.emobile.springtodo.model.util.PageInfo;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -33,9 +35,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers
-@DisplayName("TaskRepositoryImplTest Tests")
-class TaskRepositoryImplTest {
-    private TaskRepositoryImpl repository;
+@DisplayName("TaskRepositoryTest Tests")
+class TaskRepositoryTest {
+    @Autowired
+    private TaskRepository repository;
+    @Autowired
+    EntityManager entityManager;
     @Autowired
     private JdbcTemplate jdbcTemplate;
     private static final LocalDateTime MILLENNIUM = LocalDateTime.of(2000, Month.JANUARY, 1, 0, 0, 0);
@@ -58,26 +63,19 @@ class TaskRepositoryImplTest {
         postgreContainer.stop();
     }
 
-    @BeforeEach
-    void setUp() {
-        repository = new TaskRepositoryImpl(jdbcTemplate);
-        jdbcTemplate.update("TRUNCATE tasks CASCADE");
-        jdbcTemplate.update("TRUNCATE users CASCADE");
-    }
-
     @Test
     @DisplayName("findAll test: get all user data.")
     void givenPageInfoWhenGetAllThenListUser() {
-        PageInfo pageInfo = new PageInfo(5, 1);
-        Task test1 = new Task(2L, "name", "des",
-                TaskStatus.TODO, BEFORE_MILLENNIUM, MILLENNIUM, 3L);
-        Task test2 = new Task(4L, "name", "des",
-                TaskStatus.TODO, BEFORE_MILLENNIUM, MILLENNIUM, 2L);
-        Page<Task> expected = new Page<>(List.of(test1, test2));
+        Pageable pageInfo = PageRequest.of(0, 5);
         User testAuthor = new User(3L, "user", "pass1",
                 "email1@co.m", RoleType.ROLE_USER, List.of());
         User testAuthor2 = new User(2L, "user2", "pass1",
                 "email2@co.m", RoleType.ROLE_USER, List.of());
+        Task test1 = new Task(2L, "name", "des",
+                TaskStatus.TODO, BEFORE_MILLENNIUM, MILLENNIUM, testAuthor);
+        Task test2 = new Task(4L, "name", "des",
+                TaskStatus.TODO, BEFORE_MILLENNIUM, MILLENNIUM, testAuthor2);
+        PageImpl<Task> expected = new PageImpl<>(List.of(test1, test2), pageInfo, 2);
         addToDb(testAuthor);
         addToDb(testAuthor2);
         addToDb(test1);
@@ -92,10 +90,10 @@ class TaskRepositoryImplTest {
     @DisplayName("findById test: get user data by id.")
     void givenExistingIdWhenGetByIdThenUser() {
         Long taskId = 2L;
-        Task test1 = new Task(taskId, "name", "des",
-                TaskStatus.TODO, BEFORE_MILLENNIUM, MILLENNIUM, 4L);
         User testAuthor = new User(4L, "user", "pass1",
                 "email1@co.m", RoleType.ROLE_USER, List.of());
+        Task test1 = new Task(taskId, "name", "des",
+                TaskStatus.TODO, BEFORE_MILLENNIUM, MILLENNIUM, testAuthor);
         addToDb(testAuthor);
         addToDb(test1);
 
@@ -118,16 +116,17 @@ class TaskRepositoryImplTest {
     @Test
     @DisplayName("update test: send task data to repository.")
     void givenTaskWhenUpdateThenUpdatedTask() {
-        Task test1 = new Task(2L, "name", "des",
-                TaskStatus.TODO, BEFORE_MILLENNIUM, BEFORE_MILLENNIUM, 3L);
-        Task expected = new Task(2L, "name2", "des2",
-                TaskStatus.DONE, BEFORE_MILLENNIUM, MILLENNIUM, 3L);
         User testAuthor = new User(3L, "user", "pass1",
                 "email1@co.m", RoleType.ROLE_USER, List.of());
+        Task test1 = new Task(2L, "name", "des",
+                TaskStatus.TODO, BEFORE_MILLENNIUM, BEFORE_MILLENNIUM, testAuthor);
+        Task expected = new Task(2L, "name2", "des2",
+                TaskStatus.DONE, BEFORE_MILLENNIUM, MILLENNIUM, testAuthor);
         addToDb(testAuthor);
         addToDb(test1);
 
-        repository.update(expected);
+        repository.save(expected);
+        entityManager.flush();
 
         assertTrue(existsInDb(expected));
     }
@@ -136,14 +135,16 @@ class TaskRepositoryImplTest {
     @DisplayName("delete test: delete task data message to repository.")
     void givenTaskIdWhenDeleteThenVoid() {
         Long taskId = 2L;
-        Task test1 = new Task(taskId, "name", "des",
-                TaskStatus.TODO, BEFORE_MILLENNIUM, BEFORE_MILLENNIUM, 3L);
         User testAuthor = new User(3L, "user", "pass1",
                 "email1@co.m", RoleType.ROLE_USER, List.of());
+        Task test1 = new Task(taskId, "name", "des",
+                TaskStatus.TODO, BEFORE_MILLENNIUM, BEFORE_MILLENNIUM, testAuthor);
         addToDb(testAuthor);
         addToDb(test1);
 
         repository.deleteById(taskId);
+        entityManager.flush();
+
         assertFalse(existsInDb(test1));
     }
 
@@ -166,7 +167,7 @@ class TaskRepositoryImplTest {
         jdbcTemplate.update(sql,
                 task.getId(), task.getName(), task.getDescription(),
                 task.getStatus().name(), task.getCreatedAt(),
-                task.getUpdatedAt(), task.getAuthorId()
+                task.getUpdatedAt(), task.getAuthor().getId()
         );
     }
 
@@ -185,7 +186,7 @@ class TaskRepositoryImplTest {
         return jdbcTemplate.queryForObject(sql, getExistsMapper(),
                 task.getName(), task.getDescription(),
                 task.getStatus().name(), task.getCreatedAt(),
-                task.getUpdatedAt(), task.getAuthorId()
+                task.getUpdatedAt(), task.getAuthor().getId()
         );
     }
 
