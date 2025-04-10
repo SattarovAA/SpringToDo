@@ -1,16 +1,7 @@
 package com.emobile.springtodo.model.entity;
 
 import com.emobile.springtodo.model.security.RoleType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Index;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -35,6 +26,10 @@ import java.util.List;
 @FieldNameConstants
 @Builder
 @Entity
+@NamedEntityGraph(
+        name = "User.withTasks",
+        attributeNodes = @NamedAttributeNode("taskList")
+)
 @Table(name = "users",
         indexes = {
                 @Index(columnList = User.Fields.username, unique = true),
@@ -78,9 +73,4 @@ public class User implements Serializable {
     @OneToMany(mappedBy = Task.Fields.author, orphanRemoval = true)
     @Builder.Default
     private List<Task> taskList = new ArrayList<>();
-
-    @ToString.Include
-    public String getTaskListSize() {
-        return String.valueOf(taskList.size());
-    }
 }
