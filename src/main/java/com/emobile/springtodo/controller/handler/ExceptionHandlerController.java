@@ -4,6 +4,7 @@ import com.emobile.springtodo.exception.AlreadyExitsException;
 import com.emobile.springtodo.exception.DeleteEntityWithReferenceException;
 import com.emobile.springtodo.exception.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.TransactionException;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -73,6 +74,22 @@ public class ExceptionHandlerController {
     @ExceptionHandler(AlreadyExitsException.class)
     public ResponseEntity<ErrorResponseBody> badRequest(
             AlreadyExitsException ex,
+            WebRequest webRequest
+    ) {
+        return buildResponse(HttpStatus.BAD_REQUEST, ex, webRequest);
+    }
+
+    /**
+     * ExceptionHandler for {@link TransactionException}.
+     *
+     * @param ex         exception type of {@link TransactionException}.
+     * @param webRequest web request for exception description.
+     * @return {@link ResponseEntity} with {@link ErrorResponseBody}.
+     * @see #buildResponse(HttpStatus, Exception, WebRequest)
+     */
+    @ExceptionHandler(TransactionException.class)
+    public ResponseEntity<ErrorResponseBody> badRequest(
+            TransactionException ex,
             WebRequest webRequest
     ) {
         return buildResponse(HttpStatus.BAD_REQUEST, ex, webRequest);

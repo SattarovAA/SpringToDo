@@ -38,11 +38,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("UserServiceImplTest Tests")
+@DisplayName("TaskServiceImplTest Tests")
 class TaskServiceImplTest {
     private TaskServiceImpl taskService;
     @Mock
     private TaskRepository taskRepository;
+    @Mock
+    private UserServiceImpl userService;
     private static final LocalDateTime MILLENNIUM = LocalDateTime.of(2000, Month.JANUARY, 1, 0, 0, 0);
     private static final LocalDateTime BEFORE_MILLENNIUM = MILLENNIUM.minusDays(5);
     private final Clock clock = Clock.fixed(MILLENNIUM.toInstant(ZoneOffset.UTC), ZoneOffset.UTC);
@@ -50,33 +52,41 @@ class TaskServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        taskService = new TaskServiceImpl(taskRepository, clock);
+        taskService = new TaskServiceImpl(taskRepository, userService, clock);
         taskService.setSelf(taskService);
     }
 
     @Test
     @DisplayName("findAll test: get all user data.")
-    void givenWhenGetAllThenListUser() {
-        List<Task> userList = new ArrayList<>(List.of(
+    void givenWhenGetAllThenListTask() {
+        List<Task> taskList = new ArrayList<>(List.of(
                 new Task(),
                 new Task()
         ));
         PageInfo pageInfo = new PageInfo(0, 10);
 
         when(taskRepository.findAll(pageInfo))
-                .thenReturn(new Page<>(userList));
+                .thenReturn(new Page<>(taskList));
 
         List<Task> actual = taskService.findAll(pageInfo);
 
-        assertEquals(userList.size(), actual.size());
+        assertEquals(taskList.size(), actual.size());
         verify(taskRepository, times(1))
                 .findAll(pageInfo);
     }
 
     @Test
-    @DisplayName("findById test: get user data by id.")
-    void givenExistingIdWhenGetByIdThenUser() {
-        Long userId = 1L;
+    @DisplayName("findById test: get task data by id.")
+    void givenExistingIdWhenGetByIdThenTask() {
+        Long taskId = 1L;
+        User defaultUser = new User(
+                2L,
+                "user",
+                "pass",
+                "email",
+                RoleType.ROLE_USER,
+                Collections.emptyList()
+        );
         Task defaultTask = new Task(
                 1L,
                 "name",
@@ -84,13 +94,13 @@ class TaskServiceImplTest {
                 TaskStatus.DONE,
                 LocalDateTime.of(2, 2, 2, 2, 2),
                 LocalDateTime.of(2, 2, 2, 2, 2),
-                2L
+                defaultUser
         );
 
-        when(taskRepository.findById(userId))
+        when(taskRepository.findById(taskId))
                 .thenReturn(Optional.of(defaultTask));
 
-        Task actual = taskService.findById(userId);
+        Task actual = taskService.findById(taskId);
 
         assertEquals(defaultTask, actual);
         verify(taskRepository, times(1))
@@ -98,15 +108,15 @@ class TaskServiceImplTest {
     }
 
     @Test
-    @DisplayName("findById test: try to get user data by not existing id.")
+    @DisplayName("findById test: try to get task data by not existing id.")
     void givenNotExistingIdWhenGetByIdThenThrow() {
-        Long userId = 1L;
+        Long taskId = 1L;
 
-        when(taskRepository.findById(userId))
+        when(taskRepository.findById(taskId))
                 .thenReturn(Optional.empty());
 
         assertThrows(EntityNotFoundException.class,
-                () -> taskService.findById(userId),
+                () -> taskService.findById(taskId),
                 " index is incorrect."
         );
         verify(taskRepository, times(1))
@@ -114,9 +124,17 @@ class TaskServiceImplTest {
     }
 
     @Test
-    @DisplayName("save test: send user data to repository.")
-    void givenUserWhenSendUserToDbThenSavedUser() {
+    @DisplayName("save test: send task data to repository.")
+    void givenTaskWhenSendTaskToDbThenSavedTask() {
         Long userPrincipalId = 10L;
+        User defaultUser = new User(
+                userPrincipalId,
+                "username",
+                "password",
+                "email",
+                RoleType.ROLE_USER,
+                Collections.emptyList()
+        );
         Task taskToSave = new Task(
                 null,
                 "name",
@@ -133,15 +151,7 @@ class TaskServiceImplTest {
                 TaskStatus.DONE,
                 MILLENNIUM,
                 MILLENNIUM,
-                userPrincipalId
-        );
-        User defaultUser = new User(
-                userPrincipalId,
-                "username",
-                "password",
-                "email",
-                RoleType.ROLE_USER,
-                Collections.emptyList()
+                defaultUser
         );
         AppUserDetails principal = new AppUserDetails(defaultUser);
         Authentication auth =
@@ -154,6 +164,8 @@ class TaskServiceImplTest {
         when(securityContext.getAuthentication()).thenReturn(auth);
         when(taskRepository.save(expected))
                 .thenReturn(expected);
+        when(userService.findById(userPrincipalId))
+                .thenReturn(defaultUser);
 
         Task actual = taskService.save(taskToSave);
 
@@ -163,9 +175,17 @@ class TaskServiceImplTest {
     }
 
     @Test
-    @DisplayName("update test: with partially filled User data.")
-    void givenPartiallyFilledUserUpdateThenUpdatedUser() {
-        Long userId = 1L;
+    @DisplayName("update test: with partially filled Task data.")
+    void givenPartiallyFilledTaskUpdateThenUpdatedTask() {
+        Long taskId = 1L;
+        User defaultUser = new User(
+                2L,
+                "user",
+                "pass",
+                "email",
+                RoleType.ROLE_USER,
+                Collections.emptyList()
+        );
         Task partiallyFilledTask = new Task(
                 null,
                 "name",
@@ -173,7 +193,7 @@ class TaskServiceImplTest {
                 TaskStatus.TODO,
                 null,
                 null,
-                2L
+                defaultUser
         );
         Task taskToUpdate = new Task(
                 1L,
@@ -182,7 +202,7 @@ class TaskServiceImplTest {
                 TaskStatus.DONE,
                 BEFORE_MILLENNIUM,
                 BEFORE_MILLENNIUM,
-                2L
+                defaultUser
         );
         Task expected = new Task(
                 1L,
@@ -191,16 +211,18 @@ class TaskServiceImplTest {
                 TaskStatus.TODO,
                 BEFORE_MILLENNIUM,
                 MILLENNIUM,
-                2L
+                defaultUser
         );
 
 
-        when(taskRepository.findById(userId))
+        when(taskRepository.findById(taskId))
                 .thenReturn(Optional.of(taskToUpdate));
         when(taskRepository.update(expected))
                 .thenReturn(expected);
+        when(userService.findById(2L))
+                .thenReturn(defaultUser);
 
-        Task actual = taskService.update(userId, partiallyFilledTask);
+        Task actual = taskService.update(taskId, partiallyFilledTask);
 
         assertEquals(expected, actual);
         verify(taskRepository, times(1))
@@ -210,9 +232,17 @@ class TaskServiceImplTest {
     }
 
     @Test
-    @DisplayName("update test: with filled User data.")
-    void givenFilledUserAndUserIdWhenUpdateThenUpdatedUser() {
-        Long userId = 1L;
+    @DisplayName("update test: with filled Task data.")
+    void givenFilledTaskAndTaskIdWhenUpdateThenUpdatedTask() {
+        Long taskId = 1L;
+        User defaultUser = new User(
+                2L,
+                "user",
+                "pass",
+                "email",
+                RoleType.ROLE_USER,
+                Collections.emptyList()
+        );
         Task taskToUpdate = new Task(
                 1L,
                 "name",
@@ -220,7 +250,7 @@ class TaskServiceImplTest {
                 TaskStatus.DONE,
                 BEFORE_MILLENNIUM,
                 BEFORE_MILLENNIUM,
-                2L
+                defaultUser
         );
         Task expected = new Task(
                 1L,
@@ -229,15 +259,17 @@ class TaskServiceImplTest {
                 TaskStatus.DONE,
                 BEFORE_MILLENNIUM,
                 MILLENNIUM,
-                2L
+                defaultUser
         );
 
-        when(taskRepository.findById(userId))
+        when(taskRepository.findById(taskId))
                 .thenReturn(Optional.of(expected));
         when(taskRepository.update(expected))
                 .thenReturn(expected);
+        when(userService.findById(2L))
+                .thenReturn(defaultUser);
 
-        Task actual = taskService.update(userId, taskToUpdate);
+        Task actual = taskService.update(taskId, taskToUpdate);
 
         assertEquals(expected, actual);
         verify(taskRepository, times(1))
@@ -247,10 +279,18 @@ class TaskServiceImplTest {
     }
 
     @Test
-    @DisplayName("update test: try update with not existed user id.")
-    void givenUserAndNotExistedUserIdWhenUpdateThenUpdatedUser() {
-        Long notExistedUserId = 1L;
+    @DisplayName("update test: try update with not existed task id.")
+    void givenTaskAndNotExistedTaskIdWhenUpdateThenUpdatedTask() {
+        Long notExistedTaskId = 1L;
         LocalDateTime creationTime = LocalDateTime.of(1999, Month.DECEMBER, 10, 0, 0, 0);
+        User defaultUser = new User(
+                2L,
+                "user",
+                "pass",
+                "email",
+                RoleType.ROLE_USER,
+                Collections.emptyList()
+        );
         Task taskToUpdate = new Task(
                 1L,
                 "name",
@@ -258,15 +298,15 @@ class TaskServiceImplTest {
                 TaskStatus.DONE,
                 creationTime,
                 creationTime,
-                2L
+                defaultUser
         );
 
-        when(taskRepository.findById(notExistedUserId))
+        when(taskRepository.findById(notExistedTaskId))
                 .thenReturn(Optional.empty());
 
         assertThrows(EntityNotFoundException.class,
-                () -> taskService.update(notExistedUserId, taskToUpdate),
-                "UserId is incorrect."
+                () -> taskService.update(notExistedTaskId, taskToUpdate),
+                "TaskId is incorrect."
         );
         verify(taskRepository, times(0))
                 .update(any());
@@ -275,32 +315,48 @@ class TaskServiceImplTest {
     }
 
     @Test
-    @DisplayName("delete test: delete user data message to repository.")
-    void givenExistedUserIdWhenDeleteThenVoid() {
+    @DisplayName("delete test: delete task data message to repository.")
+    void givenExistedTaskIdWhenDeleteThenVoid() {
         Long existedTaskId = 1L;
-
+        User defaultUser = new User(
+                2L,
+                "user",
+                "pass",
+                "email",
+                RoleType.ROLE_USER,
+                Collections.emptyList()
+        );
+        Task expected = new Task(
+                1L,
+                "name",
+                "description",
+                TaskStatus.DONE,
+                BEFORE_MILLENNIUM,
+                MILLENNIUM,
+                defaultUser
+        );
         when(taskRepository.findById(existedTaskId))
-                .thenReturn(Optional.of(new Task()));
+                .thenReturn(Optional.of(expected));
         taskService.deleteById(existedTaskId);
 
         verify(taskRepository, times(1))
                 .findById(existedTaskId);
         verify(taskRepository, times(1))
-                .deleteById(existedTaskId);
+                .deleteById(expected);
     }
 
     @Test
     @DisplayName("delete test: delete task data message to repository.")
-    void givenNotExistedUserIdWhenDeleteThenVoid() {
-        Long notExistedUserId = 1L;
+    void givenNotExistedTaskIdWhenDeleteThenVoid() {
+        Long notExistedTaskId = 1L;
 
         assertThrows(EntityNotFoundException.class,
-                () -> taskService.deleteById(notExistedUserId),
-                "UserId is incorrect."
+                () -> taskService.deleteById(notExistedTaskId),
+                "TaskId is incorrect."
         );
         verify(taskRepository, times(1))
-                .findById(notExistedUserId);
+                .findById(notExistedTaskId);
         verify(taskRepository, times(0))
-                .deleteById(notExistedUserId);
+                .deleteById(any());
     }
 }

@@ -1,7 +1,9 @@
 package com.emobile.springtodo.controller;
 
 import com.redis.testcontainers.RedisContainer;
+import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +50,15 @@ class AuthControllerTest {
                 REDIS_CONTAINER::getHost);
         registry.add("spring.data.redis.port",
                 () -> REDIS_CONTAINER.getMappedPort(6379).toString());
+    }
+
+    @BeforeAll
+    static void beforeAll() {
+        POSTGRE_CONTAINER.start();
+        Flyway flyway = Flyway.configure()
+                .dataSource(POSTGRE_CONTAINER.getJdbcUrl(), POSTGRE_CONTAINER.getUsername(), POSTGRE_CONTAINER.getPassword())
+                .load();
+        flyway.migrate();
     }
 
     @AfterAll

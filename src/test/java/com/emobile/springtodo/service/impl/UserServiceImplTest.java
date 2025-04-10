@@ -7,12 +7,14 @@ import com.emobile.springtodo.model.util.Page;
 import com.emobile.springtodo.model.util.PageInfo;
 import com.emobile.springtodo.repository.UserRepository;
 import com.emobile.springtodo.service.TaskService;
+import com.emobile.springtodo.util.SessionUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.ArrayList;
@@ -34,14 +36,12 @@ class UserServiceImplTest {
     @Mock
     private UserRepository userRepository;
     @Mock
-    private TaskService taskService;
-    @Mock
     private PasswordEncoder passwordEncoder;
 
 
     @BeforeEach
     void setUp() {
-        userService = new UserServiceImpl(userRepository, taskService, passwordEncoder);
+        userService = new UserServiceImpl(userRepository, passwordEncoder);
         userService.setSelf(userService);
     }
 
@@ -274,15 +274,23 @@ class UserServiceImplTest {
     @DisplayName("delete test: delete user data message to repository.")
     void givenExistedUserIdWhenDeleteThenVoid() {
         Long existedUserId = 1L;
+        User defaultUser = new User(
+                1L,
+                "user",
+                "pass",
+                "email",
+                RoleType.ROLE_USER,
+                Collections.emptyList()
+        );
 
         when(userRepository.findById(existedUserId))
-                .thenReturn(Optional.of(new User()));
+                .thenReturn(Optional.of(defaultUser));
         userService.deleteById(existedUserId);
 
         verify(userRepository, times(1))
                 .findById(existedUserId);
         verify(userRepository, times(1))
-                .deleteById(existedUserId);
+                .deleteById(defaultUser);
     }
 
     @Test
@@ -297,6 +305,6 @@ class UserServiceImplTest {
         verify(userRepository, times(1))
                 .findById(notExistedUserId);
         verify(userRepository, times(0))
-                .deleteById(notExistedUserId);
+                .deleteById(any());
     }
 }

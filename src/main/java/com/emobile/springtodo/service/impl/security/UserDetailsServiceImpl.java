@@ -1,6 +1,6 @@
 package com.emobile.springtodo.service.impl.security;
 
-import com.emobile.springtodo.aop.LazyLogger;
+import com.emobile.springtodo.aop.logger.LazyLogger;
 import com.emobile.springtodo.model.entity.User;
 import com.emobile.springtodo.model.security.AppUserDetails;
 import com.emobile.springtodo.service.UserService;

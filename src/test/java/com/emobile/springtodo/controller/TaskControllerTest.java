@@ -1,19 +1,24 @@
 package com.emobile.springtodo.controller;
 
+import com.emobile.springtodo.model.entity.Task;
+import com.emobile.springtodo.model.entity.TaskStatus;
 import com.emobile.springtodo.model.entity.User;
 import com.emobile.springtodo.model.security.AppUserDetails;
 import com.emobile.springtodo.model.security.RoleType;
+import com.emobile.springtodo.util.SessionUtil;
 import com.redis.testcontainers.RedisContainer;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.flywaydb.core.Flyway;
+import org.flywaydb.core.internal.jdbc.JdbcTemplate;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
+import org.hibernate.query.Query;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.http.MediaType;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -28,6 +33,7 @@ import java.time.LocalDateTime;
 import java.time.Month;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
+import java.util.List;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -43,14 +49,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisplayName("TaskControllerTest tests")
 class TaskControllerTest {
     private static final String URL_TEMPLATE = "/api/task";
+    private static final LocalDateTime MILLENNIUM = LocalDateTime.of(2000, Month.JANUARY, 1, 0, 0, 0);
+    private static final LocalDateTime BEFORE_MILLENNIUM = MILLENNIUM.minusDays(5);
     @Autowired
-    JdbcTemplate jdbcTemplate;
+    private SessionFactory sessionFactory;
     @Autowired
     private MockMvc mockMvc;
     @Autowired
     private RedisCacheManager cacheManager;
-    private static final LocalDateTime MILLENNIUM = LocalDateTime.of(2000, Month.JANUARY, 1, 0, 0, 0);
-    private static final LocalDateTime BEFORE_MILLENNIUM = MILLENNIUM.minusDays(5);
+    private Long existedId;
+    private Long existedUserId;
 
     @Container
     public static final PostgreSQLContainer<?> POSTGRE_CONTAINER =
@@ -73,6 +81,15 @@ class TaskControllerTest {
                 () -> REDIS_CONTAINER.getMappedPort(6379).toString());
     }
 
+    @BeforeAll
+    static void beforeAll() {
+        POSTGRE_CONTAINER.start();
+        Flyway flyway = Flyway.configure()
+                .dataSource(POSTGRE_CONTAINER.getJdbcUrl(), POSTGRE_CONTAINER.getUsername(), POSTGRE_CONTAINER.getPassword())
+                .load();
+        flyway.migrate();
+    }
+
     @AfterAll
     static void afterAll() {
         POSTGRE_CONTAINER.stop();
@@ -81,8 +98,34 @@ class TaskControllerTest {
 
     @BeforeEach
     void setUp() {
-        jdbcTemplate.update("TRUNCATE users CASCADE");
         cacheManager.getCacheNames().forEach(cacheName -> cacheManager.getCache(cacheName).clear());
+
+        Session session = sessionFactory.openSession();
+        Transaction transaction = session.beginTransaction();
+
+        session.createQuery("DELETE FROM Task").executeUpdate();
+        session.createQuery("DELETE FROM User").executeUpdate();
+
+        Task test1 = new Task();
+        Task test2 = new Task();
+        User testAuthor = new User(null, "user", "pass1",
+                "email1@co.m", RoleType.ROLE_USER, List.of(test1));
+        User testAuthor2 = new User(null, "user2", "pass1",
+                "email2@co.m", RoleType.ROLE_USER, List.of(test2));
+        test1 = new Task(null, "name", "des",
+                TaskStatus.TODO, BEFORE_MILLENNIUM, MILLENNIUM, testAuthor);
+        test2 = new Task(null, "name", "des",
+                TaskStatus.TODO, BEFORE_MILLENNIUM, MILLENNIUM, testAuthor2);
+
+        session.persist(testAuthor);
+        session.persist(testAuthor2);
+        session.persist(test1);
+        session.persist(test2);
+        existedId = test1.getId();
+        existedUserId = testAuthor.getId();
+
+        transaction.commit();
+        session.close();
     }
 
     @Test
@@ -90,7 +133,7 @@ class TaskControllerTest {
     @DisplayName("getById test: get task data by id from anonymous user.")
     void givenAnonymousUserWhenGetByIdUrlThenStatusUnauthorized()
             throws Exception {
-        String getByIdUrl = URL_TEMPLATE + "/1";
+        String getByIdUrl = URL_TEMPLATE + "/" + existedId;
 
         mockMvc.perform(get(getByIdUrl))
                 .andExpect(status().isUnauthorized());
@@ -101,7 +144,7 @@ class TaskControllerTest {
     @DisplayName("getById test: get task data by not existed user id.")
     void givenNotExistedUserIdWhenGetByIdUrlThenStatusNotFound()
             throws Exception {
-        String getByIdUrl = URL_TEMPLATE + "/1";
+        String getByIdUrl = URL_TEMPLATE + "/" + (existedId + 2);
 
         mockMvc.perform(get(getByIdUrl))
                 .andExpect(status().isNotFound());
@@ -112,22 +155,14 @@ class TaskControllerTest {
     @DisplayName("getById test: get task data by existed user id.")
     void givenExistedUserIdWhenGetByIdUrlThenUserResponse()
             throws Exception {
-        long expectedId = 1L;
-        String getByIdUrl = URL_TEMPLATE + "/" + expectedId;
+        String getByIdUrl = URL_TEMPLATE + "/" + existedId;
         String expectedName = "name";
-        String expectedDescription = "description";
-        String expectedStatus = "DONE";
-        long expectedAuthorId = 2L;
-        String sql = """
-                INSERT INTO tasks(id, name, description, status, created_at, updated_at, author_id)
-                VALUES (?,?,?,?,?,?,?)
-                """;
-
-        setDefaultAuthorUser(expectedAuthorId);
-        jdbcTemplate.update(sql,
-                expectedId, expectedName, expectedDescription, expectedStatus,
-                BEFORE_MILLENNIUM, MILLENNIUM, expectedAuthorId
-        );
+        String expectedDescription = "des";
+        String expectedStatus = TaskStatus.TODO.name();
+        Long expectedAuthorId = sessionFactory.openSession()
+                .find(Task.class, existedId)
+                .getAuthor()
+                .getId();
 
         mockMvc.perform(get(getByIdUrl))
                 .andExpect(jsonPath("$.id").isNumber())
@@ -137,7 +172,7 @@ class TaskControllerTest {
                 .andExpect(jsonPath("$.createdAt").isString())
                 .andExpect(jsonPath("$.updatedAt").isString())
                 .andExpect(jsonPath("$.authorId").isNumber())
-                .andExpect(jsonPath("$.id").value(expectedId))
+                .andExpect(jsonPath("$.id").value(existedId))
                 .andExpect(jsonPath("$.name").value(expectedName))
                 .andExpect(jsonPath("$.description").value(expectedDescription))
                 .andExpect(jsonPath("$.status").value(expectedStatus))
@@ -162,27 +197,18 @@ class TaskControllerTest {
     @DisplayName("save test: save task data by user id from auth user.")
     void givenSaveJsonWhenSaveUrlThenStatusCreated()
             throws Exception {
-        long expectedId = 1L;
-        String expectedName = "name";
+        String expectedName = "nameUpd";
         String expectedDescription = "description";
         String expectedStatus = "DONE";
-        long expectedAuthorId = 2L;
         String requestUserJson = """
                 {
-                  "name": "name",
+                  "name": "nameUpd",
                   "description": "description",
                   "status": "DONE"
                 }""";
-        User defaultUser = new User(
-                expectedAuthorId,
-                "username",
-                "pass",
-                "email@c.om",
-                RoleType.ROLE_USER,
-                Collections.emptyList()
-        );
-        AppUserDetails principal = new AppUserDetails(defaultUser);
-        setDefaultAuthorUser(expectedAuthorId);
+        User user = sessionFactory.openSession()
+                .find(User.class, existedUserId);
+        AppUserDetails principal = new AppUserDetails(user);
 
         mockMvc.perform(post(URL_TEMPLATE)
                         .with(user(principal))
@@ -196,7 +222,6 @@ class TaskControllerTest {
                 .andExpect(jsonPath("$.createdAt").isString())
                 .andExpect(jsonPath("$.updatedAt").isString())
                 .andExpect(jsonPath("$.authorId").isNumber())
-                .andExpect(jsonPath("$.id").value(expectedId))
                 .andExpect(jsonPath("$.name").value(expectedName))
                 .andExpect(jsonPath("$.description").value(expectedDescription))
                 .andExpect(jsonPath("$.status").value(expectedStatus))
@@ -204,7 +229,7 @@ class TaskControllerTest {
                         .value(DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(MILLENNIUM)))
                 .andExpect(jsonPath("$.updatedAt")
                         .value(DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(MILLENNIUM)))
-                .andExpect(jsonPath("$.authorId").value(expectedAuthorId))
+                .andExpect(jsonPath("$.authorId").value(existedUserId))
                 .andExpect(status().isCreated());
     }
 
@@ -213,7 +238,7 @@ class TaskControllerTest {
     @DisplayName("update test: update task data by id from anonymous user.")
     void givenAnonymousUserWhenUpdateUrlThenStatusUnauthorized()
             throws Exception {
-        String updateUrl = URL_TEMPLATE + "/1";
+        String updateUrl = URL_TEMPLATE + "/" + existedId;
 
         mockMvc.perform(put(updateUrl))
                 .andExpect(status().isUnauthorized());
@@ -224,28 +249,16 @@ class TaskControllerTest {
     @DisplayName("update test: update task data by user id from auth user.")
     void givenInsertJsonWhenUpdateUrlThenTaskResponse()
             throws Exception {
-        long expectedId = 1L;
-        String updateUrl = URL_TEMPLATE + "/" + expectedId;
-        String expectedName = "name";
+        String updateUrl = URL_TEMPLATE + "/" + existedId;
+        String expectedName = "nameUpd";
         String expectedDescription = "description";
-        String expectedStatus = "DONE";
-        long expectedAuthorId = 2L;
+        String expectedStatus = TaskStatus.TODO.name();
         String requestUserJson = """
                 {
-                  "name": "name",
+                  "name": "nameUpd",
                   "description": "description",
-                  "status": "DONE"
+                  "status": "TODO"
                 }""";
-        String sql = """
-                INSERT INTO tasks(id, name, description, status, created_at, updated_at, author_id)
-                VALUES (?,?,?,?,?,?,?)
-                """;
-        setDefaultAuthorUser(expectedAuthorId);
-
-        jdbcTemplate.update(sql,
-                expectedId, expectedName, expectedDescription, expectedStatus,
-                BEFORE_MILLENNIUM, MILLENNIUM, expectedAuthorId
-        );
 
         mockMvc.perform(put(updateUrl)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -258,7 +271,7 @@ class TaskControllerTest {
                 .andExpect(jsonPath("$.createdAt").isString())
                 .andExpect(jsonPath("$.updatedAt").isString())
                 .andExpect(jsonPath("$.authorId").isNumber())
-                .andExpect(jsonPath("$.id").value(expectedId))
+                .andExpect(jsonPath("$.id").value(existedId))
                 .andExpect(jsonPath("$.name").value(expectedName))
                 .andExpect(jsonPath("$.description").value(expectedDescription))
                 .andExpect(jsonPath("$.status").value(expectedStatus))
@@ -266,7 +279,7 @@ class TaskControllerTest {
                         .value(DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(BEFORE_MILLENNIUM)))
                 .andExpect(jsonPath("$.updatedAt")
                         .value(DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(MILLENNIUM)))
-                .andExpect(jsonPath("$.authorId").value(expectedAuthorId))
+                .andExpect(jsonPath("$.authorId").value(existedUserId))
                 .andExpect(status().isOk());
     }
 
@@ -275,7 +288,7 @@ class TaskControllerTest {
     @DisplayName("delete test: delete user data by id from anonymous user.")
     void givenAnonymousUserWhenDeleteUrlThenStatusUnauthorized()
             throws Exception {
-        String deleteUrl = URL_TEMPLATE + "/1";
+        String deleteUrl = URL_TEMPLATE + "/" + existedId;
 
         mockMvc.perform(delete(deleteUrl))
                 .andExpect(status().isUnauthorized());
@@ -286,7 +299,7 @@ class TaskControllerTest {
     @DisplayName("delete test: delete user data by not existed id.")
     void givenNotExistedUserIdWhenDeleteUrlThenStatusNotFound()
             throws Exception {
-        String deleteUrl = URL_TEMPLATE + "/1";
+        String deleteUrl = URL_TEMPLATE + "/" + (existedId + 2);
 
         mockMvc.perform(delete(deleteUrl))
                 .andExpect(status().isNotFound());
@@ -297,38 +310,9 @@ class TaskControllerTest {
     @DisplayName("delete test: delete user data by existed id from auth user.")
     void givenExistedUserIdWhenDeleteUrlThenStatusNoContent()
             throws Exception {
-        long expectedId = 1L;
-        String deleteUrl = URL_TEMPLATE + "/" + expectedId;
-        String expectedName = "name";
-        String expectedDescription = "description";
-        String expectedStatus = "DONE";
-        long expectedAuthorId = 2L;
-        String sql = """
-                INSERT INTO tasks(id, name, description, status, created_at, updated_at, author_id)
-                VALUES (?,?,?,?,?,?,?)
-                """;
+        String deleteUrl = URL_TEMPLATE + "/" + existedId;
 
-        setDefaultAuthorUser(expectedAuthorId);
-        jdbcTemplate.update(sql,
-                expectedId, expectedName, expectedDescription, expectedStatus,
-                BEFORE_MILLENNIUM, MILLENNIUM, expectedAuthorId
-        );
         mockMvc.perform(delete(deleteUrl))
                 .andExpect(status().isNoContent());
-    }
-
-    private void setDefaultAuthorUser(long expectedId) {
-        String expectedUsername = "username";
-        String expectedPass = "pass";
-        String expectedEmail = "email@c.om";
-        String expectedRole = "ROLE_USER";
-        String sql = """
-                INSERT INTO users(id, username, password, email, role)
-                VALUES (?,?,?,?,?)
-                """;
-        jdbcTemplate.update(sql,
-                expectedId, expectedUsername, expectedPass,
-                expectedEmail, expectedRole
-        );
     }
 }

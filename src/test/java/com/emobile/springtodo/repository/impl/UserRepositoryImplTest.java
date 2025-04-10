@@ -6,15 +6,25 @@ import com.emobile.springtodo.model.entity.User;
 import com.emobile.springtodo.model.security.RoleType;
 import com.emobile.springtodo.model.util.Page;
 import com.emobile.springtodo.model.util.PageInfo;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import com.emobile.springtodo.util.SessionUtil;
+import jakarta.persistence.EntityManager;
+import org.flywaydb.core.Flyway;
+import org.flywaydb.core.internal.jdbc.JdbcTemplate;
+import org.flywaydb.core.internal.jdbc.RowMapper;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
+import org.hibernate.annotations.NamedQuery;
+import org.hibernate.boot.MetadataSources;
+import org.hibernate.boot.registry.StandardServiceRegistry;
+import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
+import org.hibernate.cfg.Configuration;
+import org.hibernate.query.Query;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -26,18 +36,20 @@ import java.time.Month;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
-@DataJpaTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+//@DataJpaTest
+//@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+//@SpringBootTest
 @Testcontainers
 @DisplayName("UserRepositoryImpl Tests")
 class UserRepositoryImplTest {
+    //    @Autowired
     private UserRepositoryImpl repository;
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+    //    @Autowired
+    private SessionUtil sessionUtil;
+    private static SessionFactory sessionFactory;
+
     private static final LocalDateTime MILLENNIUM = LocalDateTime.of(2000, Month.JANUARY, 1, 0, 0, 0);
     private static final LocalDateTime BEFORE_MILLENNIUM = MILLENNIUM.minusDays(5);
     @Container
@@ -52,6 +64,27 @@ class UserRepositoryImplTest {
         registry.add("spring.datasource.password", postgreContainer::getPassword);
     }
 
+    @BeforeAll
+    static void beforeAll() {
+        postgreContainer.start();
+        Flyway flyway = Flyway.configure()
+                .dataSource(postgreContainer.getJdbcUrl(), postgreContainer.getUsername(), postgreContainer.getPassword())
+                .load();
+        flyway.migrate();
+
+        Configuration configuration = new Configuration()
+                .setProperty("hibernate.connection.url", postgreContainer.getJdbcUrl())
+                .setProperty("hibernate.connection.username", postgreContainer.getUsername())
+                .setProperty("hibernate.connection.password", postgreContainer.getPassword())
+                .setProperty("hibernate.dialect", "org.hibernate.dialect.PostgreSQLDialect")
+                .setProperty("hibernate.hbm2ddl.auto", "create-drop")
+                .setProperty("hibernate.show_sql", "true")
+                .addAnnotatedClass(User.class)
+                .addAnnotatedClass(Task.class);
+
+        sessionFactory = configuration.buildSessionFactory();
+    }
+
     @AfterAll
     static void afterAll() {
         postgreContainer.stop();
@@ -59,21 +92,39 @@ class UserRepositoryImplTest {
 
     @BeforeEach
     void setUp() {
-        repository = new UserRepositoryImpl(jdbcTemplate);
-        jdbcTemplate.update("TRUNCATE users CASCADE");
+        sessionUtil = new SessionUtil(sessionFactory);
+        repository = new UserRepositoryImpl(sessionUtil);
+
+        Session session = sessionFactory.openSession();
+        Transaction transaction = session.beginTransaction();
+
+        session.createQuery("DELETE FROM Task").executeUpdate();
+        session.createQuery("DELETE FROM User").executeUpdate();
+
+        transaction.commit();
+        session.close();
+    }
+
+    @AfterEach
+    void after() {
+        sessionUtil.closeSession();
     }
 
     @Test
     @DisplayName("findAll test: get all user data.")
     void givenPageInfoWhenGetAllThenListUser() {
-        PageInfo pageInfo = new PageInfo(5, 1);
-        User test1 = new User(2L, "test1", "pass1",
+        PageInfo pageInfo = new PageInfo(5, 0);
+        User test1 = new User(null, "test1", "pass1",
                 "email1@co.m", RoleType.ROLE_USER, List.of());
-        User test2 = new User(3L, "test2", "pass2",
+        User test2 = new User(null, "test2", "pass2",
                 "email2@co.m", RoleType.ROLE_ADMIN, List.of());
         Page<User> expected = new Page<>(List.of(test1, test2));
-        addToDb(test1);
-        addToDb(test2);
+
+        Session session = sessionUtil.getSession();
+        Transaction transaction = session.beginTransaction();
+        sessionUtil.getSession().persist(test1);
+        sessionUtil.getSession().persist(test2);
+        transaction.commit();
 
         Page<User> actual = repository.findAll(pageInfo);
 
@@ -83,18 +134,24 @@ class UserRepositoryImplTest {
     @Test
     @DisplayName("findById test: get user data by id.")
     void givenExistingIdWhenGetByIdThenUser() {
-        Long userId = 2L;
-        Task testTask = new Task(2L, "name", "des",
-                TaskStatus.TODO, BEFORE_MILLENNIUM, MILLENNIUM, userId);
-        User test1 = new User(userId, "test1", "pass1",
+        Session session = sessionUtil.getSession();
+        Transaction transaction = session.beginTransaction();
+        Task testTask = new Task();
+        User test1 = new User(null, "test1", "pass1",
                 "email1@co.m", RoleType.ROLE_USER, List.of(testTask));
-        addToDb(test1);
-        addToDb(testTask);
+        testTask = new Task(null, "name", "des",
+                TaskStatus.TODO, BEFORE_MILLENNIUM, MILLENNIUM, test1);
+
+        sessionUtil.getSession().persist(test1);
+        sessionUtil.getSession().persist(testTask);
+        Long userId = test1.getId();
+        transaction.commit();
 
         Optional<User> actual = repository.findById(userId);
 
         assertTrue(actual.isPresent());
         assertEquals(test1, actual.get());
+        assertEquals(1, actual.get().getTaskList().size());
     }
 
     @Test
@@ -103,6 +160,7 @@ class UserRepositoryImplTest {
         Long userId = 1L;
 
         Optional<User> actual = repository.findById(userId);
+        actual.ifPresent(System.out::println);
 
         assertTrue(actual.isEmpty());
     }
@@ -111,12 +169,17 @@ class UserRepositoryImplTest {
     @DisplayName("findByUsername test: get user data by name.")
     void givenExistingNameWhenGetByIdThenUser() {
         String userUsername = "user";
-        Task testTask = new Task(2L, "name", "des",
-                TaskStatus.TODO, BEFORE_MILLENNIUM, MILLENNIUM, 2L);
-        User test1 = new User(2L, userUsername, "pass1",
+        Task testTask = new Task();
+        User test1 = new User(null, userUsername, "pass1",
                 "email1@co.m", RoleType.ROLE_USER, List.of(testTask));
-        addToDb(test1);
-        addToDb(testTask);
+        testTask = new Task(null, "name", "des",
+                TaskStatus.TODO, BEFORE_MILLENNIUM, MILLENNIUM, test1);
+
+        Session session = sessionUtil.getSession();
+        Transaction transaction = session.beginTransaction();
+        sessionUtil.getSession().persist(test1);
+        sessionUtil.getSession().persist(testTask);
+        transaction.commit();
 
         Optional<User> actual = repository.findByUsername(userUsername);
 
@@ -137,82 +200,64 @@ class UserRepositoryImplTest {
     @Test
     @DisplayName("save test: send user data to repository.")
     void givenUserWhenSendUserToDbThenSavedUser() {
+        Session session = sessionUtil.getSession();
         User userToSave = new User(null, "user", "pass",
                 "email2@co.m", RoleType.ROLE_USER, List.of());
 
-        repository.save(userToSave);
+        session.beginTransaction();
+        User actual = repository.save(userToSave);
+        session.getTransaction().commit();
 
-        assertTrue(existsInDb(userToSave));
+        User inDb = session.find(User.class, actual.getId());
+
+        assertNotNull(actual);
+        assertNotNull(inDb);
+        assertEquals(inDb, actual);
+        assertSame(inDb, actual);
     }
 
     @Test
     @DisplayName("update test: send user data to repository.")
     void givenUserWhenUpdateThenUpdatedUser() {
-        User test1 = new User(2L, "user", "pass1",
+        Session session = sessionUtil.getSession();
+        User test1 = new User(null, "user", "pass1",
                 "email1@co.m", RoleType.ROLE_USER, List.of());
-        User expected = new User(2L, "user", "pass",
-                "email2@co.m", RoleType.ROLE_USER, List.of());
+
+        session.beginTransaction();
         addToDb(test1);
+        Long userId = test1.getId();
+        session.getTransaction().commit();
 
-        repository.update(expected);
+        User expected = new User(userId, "user", "pass",
+                "email2@co.m", RoleType.ROLE_USER, List.of());
 
-        assertTrue(existsInDb(expected));
+        User actual = repository.update(expected);
+
+        session.find(User.class, userId);
+        assertEquals(expected, actual);
     }
 
     @Test
     @DisplayName("delete test: delete user data message to repository.")
     void givenUserIdWhenDeleteThenVoid() {
-        Long userId = 1L;
-        User test1 = new User(userId, "user", "pass1",
+        Session session = sessionUtil.getSession();
+        User test1 = new User(null, "user", "pass1",
                 "email1@co.m", RoleType.ROLE_USER, List.of());
-        addToDb(test1);
+        session.beginTransaction();
+        session.persist(test1);
+        session.getTransaction().commit();
 
-        repository.deleteById(userId);
-        assertFalse(existsInDb(test1));
+        repository.deleteById(test1);
+
+        User actual = session.find(User.class, test1.getId());
+        assertNull(actual);
     }
 
     private void addToDb(User user) {
-        String sql = """
-                INSERT INTO users(id, username, password, email, role)
-                VALUES (?,?,?,?,?)
-                """;
-        jdbcTemplate.update(sql,
-                user.getId(), user.getUsername(), user.getPassword(),
-                user.getEmail(), user.getRole().name()
-        );
+        sessionUtil.getSession().persist(user);
     }
 
     private void addToDb(Task task) {
-        String sql = """
-                INSERT INTO tasks(id, name, description, status, created_at, updated_at, author_id)
-                VALUES (?,?,?,?,?,?,?)
-                """;
-        jdbcTemplate.update(sql,
-                task.getId(), task.getName(), task.getDescription(),
-                task.getStatus().name(), task.getCreatedAt(),
-                task.getUpdatedAt(), task.getAuthorId()
-        );
-    }
-
-    private boolean existsInDb(User user) {
-        String sql = """
-                SELECT EXISTS (SELECT *
-                        FROM users
-                        WHERE username = ?
-                        AND password = ?
-                        AND email = ?
-                        AND role = ?)
-                        AS result
-                """;
-        return jdbcTemplate.queryForObject(sql, getExistsMapper(),
-                user.getUsername(), user.getPassword(),
-                user.getEmail(), user.getRole().name()
-        );
-    }
-
-    private RowMapper<Boolean> getExistsMapper() {
-        return (resultSet, rowNum) ->
-                resultSet.getString("result")
-                        .equals("t");
+        sessionUtil.getSession().persist(task);
     }
 }

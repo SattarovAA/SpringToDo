@@ -1,13 +1,18 @@
 package com.emobile.springtodo.service.impl;
 
-import com.emobile.springtodo.aop.LazyLogger;
+import com.emobile.springtodo.aop.logger.LazyLogger;
+import com.emobile.springtodo.aop.session.LazySession;
+import com.emobile.springtodo.model.util.SessionAction;
+import com.emobile.springtodo.model.util.TransactionalType;
 import com.emobile.springtodo.config.property.cache.AppCacheProperties;
 import com.emobile.springtodo.exception.EntityNotFoundException;
 import com.emobile.springtodo.model.entity.Task;
+import com.emobile.springtodo.model.entity.User;
 import com.emobile.springtodo.model.security.AppUserDetails;
 import com.emobile.springtodo.model.util.PageInfo;
 import com.emobile.springtodo.repository.TaskRepository;
 import com.emobile.springtodo.service.TaskService;
+import com.emobile.springtodo.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheConfig;
@@ -18,7 +23,6 @@ import org.springframework.cache.annotation.Caching;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.text.MessageFormat;
 import java.time.Clock;
@@ -43,6 +47,14 @@ public class TaskServiceImpl implements TaskService {
      */
     private final TaskRepository taskRepository;
     /**
+     * {@link User} Service.
+     * To fill author field.
+     *
+     * @see #enrich(Task)
+     * @see #enrich(Task, Task)
+     */
+    private final UserService userService;
+    /**
      * Time management object.
      */
     private final Clock clock;
@@ -61,7 +73,7 @@ public class TaskServiceImpl implements TaskService {
      */
     @Override
     @Cacheable(AppCacheProperties.Types.TASKS)
-    @Transactional(readOnly = true)
+    @LazySession
     @LazyLogger
     public List<Task> findAll(PageInfo pageInfo) {
         return taskRepository.findAll(pageInfo).content();
@@ -76,7 +88,7 @@ public class TaskServiceImpl implements TaskService {
      */
     @Override
     @Cacheable(value = AppCacheProperties.Types.TASK_BY_ID, key = "#id")
-    @Transactional(readOnly = true)
+    @LazySession(action = SessionAction.CHECK)
     @LazyLogger
     public Task findById(Long id) {
         return taskRepository.findById(id).orElseThrow(
@@ -102,7 +114,7 @@ public class TaskServiceImpl implements TaskService {
             @CacheEvict(value = AppCacheProperties.Types.USER_BY_ID, key = "#result.authorId"),
             @CacheEvict(value = AppCacheProperties.Types.USER_BY_NAME, allEntries = true)
     })
-    @Transactional
+    @LazySession(type = TransactionalType.AROUND)
     @LazyLogger
     public Task save(Task model) {
         model = enrich(model);
@@ -125,7 +137,7 @@ public class TaskServiceImpl implements TaskService {
             @CacheEvict(value = AppCacheProperties.Types.USER_BY_ID, key = "#result.authorId"),
             @CacheEvict(value = AppCacheProperties.Types.USER_BY_NAME, allEntries = true)
     })
-    @Transactional
+    @LazySession(type = TransactionalType.AROUND)
     @LazyLogger
     public Task update(Long id, Task model) {
         model = enrich(model, self.findById(id));
@@ -145,7 +157,7 @@ public class TaskServiceImpl implements TaskService {
                 .status(model.getStatus())
                 .createdAt(LocalDateTime.now(clock))
                 .updatedAt(LocalDateTime.now(clock))
-                .authorId(getCurrentUserId())
+                .author(userService.findById(getCurrentUserId()))
                 .build();
     }
 
@@ -180,7 +192,7 @@ public class TaskServiceImpl implements TaskService {
                         : model.getStatus())
                 .createdAt(taskToUpdate.getCreatedAt())
                 .updatedAt(LocalDateTime.now(clock))
-                .authorId(taskToUpdate.getAuthorId())
+                .author(userService.findById(taskToUpdate.getAuthorId()))
                 .build();
     }
 
@@ -197,11 +209,11 @@ public class TaskServiceImpl implements TaskService {
             @CacheEvict(value = AppCacheProperties.Types.USER_BY_ID, allEntries = true),
             @CacheEvict(value = AppCacheProperties.Types.USER_BY_NAME, allEntries = true)
     })
-    @Transactional
+    @LazySession(type = TransactionalType.AROUND)
     @LazyLogger
     public void deleteById(Long id) {
-        self.findById(id);
-        taskRepository.deleteById(id);
+        Task task = self.findById(id);
+        taskRepository.deleteById(task);
     }
 
     /**
@@ -215,7 +227,7 @@ public class TaskServiceImpl implements TaskService {
             @CacheEvict(value = AppCacheProperties.Types.USER_BY_ID, allEntries = true),
             @CacheEvict(value = AppCacheProperties.Types.USER_BY_NAME, allEntries = true)
     })
-    @Transactional
+    @LazySession(type = TransactionalType.AROUND)
     @LazyLogger
     public void deleteAll() {
         taskRepository.deleteAll();
@@ -233,7 +245,7 @@ public class TaskServiceImpl implements TaskService {
             @CacheEvict(value = AppCacheProperties.Types.USER_BY_ID, key = "#userId"),
             @CacheEvict(value = AppCacheProperties.Types.USER_BY_NAME, allEntries = true)
     })
-    @Transactional
+    @LazySession(type = TransactionalType.AROUND)
     @LazyLogger
     public void deleteAllByUserId(Long userId) {
         taskRepository.deleteAllByUserId(userId);

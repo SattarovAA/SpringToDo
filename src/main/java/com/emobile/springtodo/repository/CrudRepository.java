@@ -45,11 +45,9 @@ public interface CrudRepository<T> {
     T update(T model);
 
     /**
-     * Delete object with {@code T.id}
-     * equals {@code id} from database.
+     * Delete object {@code model}.
      *
-     * @param id id of the object to be deleted
-     * @return {@code true} if success
+     * @param model object to be deleted
      */
-    boolean deleteById(Long id);
+    void deleteById(T model);//TODPO rename
 }

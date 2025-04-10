@@ -1,6 +1,6 @@
 package com.emobile.springtodo.controller;
 
-import com.emobile.springtodo.aop.LazyLogger;
+import com.emobile.springtodo.aop.logger.LazyLogger;
 import com.emobile.springtodo.mapper.TaskMapper;
 import com.emobile.springtodo.model.dto.task.TaskInsertRequest;
 import com.emobile.springtodo.model.dto.task.TaskListResponse;
