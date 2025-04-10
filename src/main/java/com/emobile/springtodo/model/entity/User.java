@@ -35,10 +35,6 @@ import java.util.List;
 @Getter
 @FieldNameConstants
 @Builder
-//@NamedEntityGraph(
-//        name = "User.withTasks",
-//        attributeNodes = @NamedAttributeNode("taskList")
-//)
 @Entity
 @Table(name = "users",
         indexes = {
@@ -83,9 +79,9 @@ public class User implements Serializable {
     @OneToMany(mappedBy = Task.Fields.author, orphanRemoval = true)
     @Builder.Default
     private List<Task> taskList = new ArrayList<>();
-
-    @ToString.Include
-    public String getTaskListSize() {
-        return String.valueOf(taskList.size());
-    }
+//
+//    @ToString.Include
+//    public String getTaskListSize() {
+//        return String.valueOf(taskList.size());
+//    }
 }

@@ -7,11 +7,9 @@ import com.emobile.springtodo.model.util.PageInfo;
 import com.emobile.springtodo.repository.UserRepository;
 import com.emobile.springtodo.util.SessionUtil;
 import lombok.RequiredArgsConstructor;
-import org.hibernate.Session;
 import org.hibernate.query.Query;
 import org.springframework.stereotype.Repository;
 
-import java.util.Objects;
 import java.util.Optional;
 
 
@@ -24,20 +22,20 @@ public class UserRepositoryImpl implements UserRepository {
     @LazyLogger
     public Page<User> findAll(PageInfo pageinfo) {
         int beginInd = pageinfo.pageNumber() * pageinfo.pageSize();
-        int endInd = beginInd + pageinfo.pageSize();
         Query<User> query = sessionUtil.getSession()
                 .createQuery("FROM User", User.class)
                 .setFirstResult(beginInd)
-                .setMaxResults(endInd);
+                .setMaxResults(pageinfo.pageSize());
         return new Page<>(query.getResultList());
     }
 
     @Override
     @LazyLogger
     public Optional<User> findById(Long id) {
-        return Optional.ofNullable(
-                sessionUtil.getSession().get(User.class, id)
-        );
+        Query<User> query = sessionUtil.getSession()
+                .createQuery("FROM User u LEFT JOIN FETCH u.taskList WHERE u.id = :id", User.class)
+                .setParameter("id", id);
+        return Optional.ofNullable(query.uniqueResult());
     }
 
     @Override
@@ -50,12 +48,7 @@ public class UserRepositoryImpl implements UserRepository {
     @Override
     @LazyLogger
     public User update(User model) {
-        Session session = sessionUtil.getSession();
-        if (Objects.isNull(session.find(User.class, model.getId()))) {//TODO toUpdate
-            session.persist(model);
-            return model;
-        }
-        return session.merge(model);
+        return sessionUtil.getSession().merge(model);
     }
 
     @Override
@@ -68,8 +61,8 @@ public class UserRepositoryImpl implements UserRepository {
     @LazyLogger
     public Optional<User> findByUsername(String username) {
         Query<User> query = sessionUtil.getSession()
-                .createQuery("FROM User WHERE username = :username", User.class);
-        query.setParameter("username", username);
+                .createQuery("FROM User WHERE username = :username", User.class)
+                .setParameter("username", username);
         return Optional.ofNullable(query.uniqueResult());
     }
 
@@ -99,11 +92,12 @@ public class UserRepositoryImpl implements UserRepository {
 
     private boolean existsByField(String fieldName, Object value) {
         try {
-            Session session = sessionUtil.getSession();
-            Query<Long> query = session.createQuery(
-                    "SELECT COUNT(u.id) FROM User u WHERE u." + fieldName + " = :value",
-                    Long.class);
-            query.setParameter("value", value);
+            Query<Long> query = sessionUtil.getSession()
+                    .createQuery(
+                            "SELECT COUNT(u.id) FROM User u WHERE u." + fieldName + " = :value",
+                            Long.class
+                    )
+                    .setParameter("value", value);
             Long count = query.uniqueResult();
             return count != null && count > 0;
         } catch (Exception e) {
@@ -114,13 +108,13 @@ public class UserRepositoryImpl implements UserRepository {
 
     private boolean existsByField(String fieldName, Object value, Long currentUserId) {
         try {
-            Session session = sessionUtil.getSession();
-            Query<Long> query = session.createQuery(
-                    "SELECT COUNT(u.id) FROM User u WHERE u." + fieldName + " = :value "
-                    + "and u.id != :userId",
-                    Long.class);
-            query.setParameter("value", value);
-            query.setParameter("userId", currentUserId);
+            Query<Long> query = sessionUtil.getSession()
+                    .createQuery(
+                            "SELECT COUNT(u.id) FROM User u " +
+                            "WHERE u." + fieldName + " = :value and u.id != :userId",
+                            Long.class)
+                    .setParameter("value", value)
+                    .setParameter("userId", currentUserId);
             Long count = query.uniqueResult();
             return count != null && count > 0;
         } catch (Exception e) {

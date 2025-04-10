@@ -80,9 +80,9 @@ public class ExceptionHandlerController {
     }
 
     /**
-     * ExceptionHandler for {@link AlreadyExitsException}.
+     * ExceptionHandler for {@link TransactionException}.
      *
-     * @param ex         exception type of {@link AlreadyExitsException}.
+     * @param ex         exception type of {@link TransactionException}.
      * @param webRequest web request for exception description.
      * @return {@link ResponseEntity} with {@link ErrorResponseBody}.
      * @see #buildResponse(HttpStatus, Exception, WebRequest)
