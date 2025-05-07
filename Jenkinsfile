@@ -8,7 +8,6 @@ pipeline {
     }
 
     stages {
-        // Этап 1: Checkout кода (работает для PR и обычных пушей)
         stage('Checkout') {
             steps {
                 script {
@@ -26,14 +25,12 @@ pipeline {
             }
         }
 
-        // Этап 2: Сборка и тесты (запускается всегда)
         stage('Build & Test') {
             steps {
-                sh 'mvn clean install'
+                bat 'mvn clean install'
             }
         }
 
-        // Этап 3: Сборка Docker-образа (только для пуша в main)
         stage('Build Docker Image') {
             when {
                 allOf {
@@ -48,7 +45,6 @@ pipeline {
             }
         }
 
-        // Этап 4: Пуш образа в Docker Hub (только для main)
         stage('Push to Docker Hub') {
             when {
                 allOf {
